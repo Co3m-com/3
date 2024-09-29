@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>CO3M.COM</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        // Polyfill cho các trình duyệt cũ không hỗ trợ fetch
+        if (!window.fetch) {
+            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/fetch/2.0.4/fetch.min.js"><\/script>');
+        }
+    </script>
+</head>
+<body>
+
+<div id="score">0</div>
+<button id="button" aria-label="Nhấn vào đây để chơi"></button>
+
+<script src="app.js"></script>
+
+<!-- Đăng ký service worker -->
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('service-worker.js').then(function(registration) {
+                console.log('Service Worker registered with scope:', registration.scope);
+            }).catch(function(error) {
+                console.log('Service Worker registration failed:', error);
+            });
+        });
+    }
+</script>
+
+</body>
+</html>
