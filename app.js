@@ -43,14 +43,14 @@ function handleClick() {
         // Nếu chưa có thời gian nhấn trước đó (đây là lần nhấn đầu tiên)
         body.style.backgroundColor = "green"; // Đặt màu nền thành xanh
 
-        // Tự động đổi sang màu vàng sau 900ms
+        // Tự động đổi sang màu vàng sau 880ms
         setTimeout(() => {
             body.style.backgroundColor = "yellow"; // Đổi sang màu vàng
-            // Để màu vàng hiển thị trong 100ms
+            // Để màu vàng hiển thị trong 120ms
             setTimeout(() => {
                 body.style.backgroundColor = ""; // Đặt lại màu nền về mặc định
-            }, 100);
-        }, 900); // Thời gian chờ 900ms
+            }, 120);
+        }, 880); // Thời gian chờ 880ms
     }
 
     lastClickTime = now; // Cập nhật thời gian nhấn
