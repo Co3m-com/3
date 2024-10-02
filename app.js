@@ -7,6 +7,19 @@ function updateScore() {
     document.getElementById('score').innerText = score; // Cập nhật điểm
 }
 
+function autoStartGame() {
+    if (score === 0) {
+        body.style.backgroundColor = "green"; // Đặt màu nền xanh
+        setTimeout(() => {
+            body.style.backgroundColor = "yellow"; // Đổi sang màu vàng
+            // Để màu vàng hiển thị trong 120ms
+            setTimeout(() => {
+                body.style.backgroundColor = ""; // Đặt lại màu nền về mặc định
+            }, 120);
+        }, 880); // Thời gian chờ 880ms
+    }
+}
+
 function handleClick() {
     var now = new Date().getTime();
 
@@ -17,6 +30,7 @@ function handleClick() {
         waitingForReset = false; // Đặt lại trạng thái chờ reset
         lastClickTime = null; // Đặt lại thời gian nhấn
         updateScore(); // Cập nhật điểm
+        autoStartGame(); // Tự động khởi động lại trò chơi
         return; // Dừng xử lý
     }
 
@@ -55,6 +69,9 @@ function handleClick() {
 
     lastClickTime = now; // Cập nhật thời gian nhấn
     updateScore(); // Cập nhật điểm
+    
+    // Tự động bắt đầu lại nếu số điểm là 0
+    autoStartGame();
 }
 
 // Sử dụng addEventListener cho tất cả các ứng dụng
@@ -87,3 +104,6 @@ if (!Array.prototype.includes) {
         return false;
     };
 }
+
+// Tự động bắt đầu trò chơi ngay khi load trang nếu điểm là 0
+autoStartGame();
