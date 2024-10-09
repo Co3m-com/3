@@ -1,99 +1,101 @@
 var score = 0;
 var lastClickTime = null;
-var body = document.body; // Lưu body vào biến để sử dụng sau
-var waitingForReset = false; // Biến để theo dõi việc chờ reset
+var body = document.body;
+var waitingForReset = false;
+var gameInterval;
+var yellowActive = false; // Biến để theo dõi màu vàng
 
 function updateScore() {
-    document.getElementById('score').innerText = score; // Cập nhật điểm
+    document.getElementById('score').innerText = score;
+}
+
+function changeToYellow() {
+    body.style.backgroundColor = "yellow";
+    yellowActive = true; // Đánh dấu rằng màu vàng đang hoạt động
+    setTimeout(() => {
+        body.style.backgroundColor = ""; 
+        yellowActive = false; // Đánh dấu rằng màu vàng đã không còn sử dụng
+    }, 100); // Giữ màu vàng trong 100ms
+}
+
+function startAutoColorChange() {
+    body.style.backgroundColor = "green";
+    // Clear interval trước khi bắt đầu lại
+    clearInterval(gameInterval);
+    gameInterval = setInterval(() => {
+        if (!yellowActive) { // Chỉ thay đổi màu sang vàng nếu màu vàng chưa được sử dụng
+            changeToYellow(); // Gọi hàm để thay đổi thành màu vàng
+        }
+    }, 900); // Đợi 900ms để thay màu vàng
+}
+
+function stopAutoColorChange() {
+    clearInterval(gameInterval);
+    body.style.backgroundColor = "";
+    yellowActive = false; // Reset lại biến theo dõi màu vàng
 }
 
 function autoStartGame() {
     if (score === 0) {
-        body.style.backgroundColor = "green"; // Đặt màu nền xanh
-        setTimeout(() => {
-            body.style.backgroundColor = "yellow"; // Đổi sang màu vàng
-            // Để màu vàng hiển thị trong 120ms
-            setTimeout(() => {
-                body.style.backgroundColor = ""; // Đặt lại màu nền về mặc định
-            }, 120);
-        }, 880); // Thời gian chờ 880ms
+        stopAutoColorChange();
+        startAutoColorChange();
     }
 }
 
 function handleClick() {
     var now = new Date().getTime();
 
-    // Nếu trạng thái đang chờ reset (nền màu đỏ)
     if (waitingForReset) {
-        score = 0; // Đặt lại điểm
-        body.style.backgroundColor = ""; // Đặt màu nền về mặc định
-        waitingForReset = false; // Đặt lại trạng thái chờ reset
-        lastClickTime = null; // Đặt lại thời gian nhấn
-        updateScore(); // Cập nhật điểm
-        autoStartGame(); // Tự động khởi động lại trò chơi
-        return; // Dừng xử lý
+        score = 0; 
+        stopAutoColorChange();
+        waitingForReset = false;
+        lastClickTime = null; 
+        updateScore();
+        autoStartGame();
+        return;
     }
 
-    // Nếu đã có thời gian nhấn trước đó
     if (lastClickTime !== null) {
         var timeDiff = now - lastClickTime;
 
-        // Nếu chạm sớm hơn 900ms
         if (timeDiff < 900) {
-            body.style.backgroundColor = "red"; // Đổi màu nền thành đỏ
-            waitingForReset = true; // Đặt trạng thái chờ reset
-        } 
-        // Trường hợp chạm trong khoảng 900ms đến 1000ms
-        else if (timeDiff >= 900 && timeDiff <= 1000) {
-            score++;
-            body.style.backgroundColor = ""; // Đặt màu nền về mặc định chỉ khi điểm tăng
-        } 
-        // Nếu chạm quá 1000ms
-        else if (timeDiff > 1000) {
-            body.style.backgroundColor = "red"; // Đổi màu nền thành đỏ
-            waitingForReset = true; // Đặt trạng thái chờ reset
+            body.style.backgroundColor = "red"; 
+            waitingForReset = true; 
+        } else if (timeDiff >= 900 && timeDiff <= 1000) {
+            score++; 
+            body.style.backgroundColor = ""; 
+            // Reset biến vàng sau mỗi lần tạo màu vàng
+            yellowActive = false;
+        } else if (timeDiff > 1000) {
+            body.style.backgroundColor = "red"; 
+            waitingForReset = true;
         }
     } else {
-        // Nếu chưa có thời gian nhấn trước đó (đây là lần nhấn đầu tiên)
-        body.style.backgroundColor = "green"; // Đặt màu nền thành xanh
-
-        // Tự động đổi sang màu vàng sau 880ms
-        setTimeout(() => {
-            body.style.backgroundColor = "yellow"; // Đổi sang màu vàng
-            // Để màu vàng hiển thị trong 120ms
-            setTimeout(() => {
-                body.style.backgroundColor = ""; // Đặt lại màu nền về mặc định
-            }, 120);
-        }, 880); // Thời gian chờ 880ms
+        body.style.backgroundColor = "green"; 
+        startAutoColorChange();
     }
 
-    lastClickTime = now; // Cập nhật thời gian nhấn
-    updateScore(); // Cập nhật điểm
-    
-    // Tự động bắt đầu lại nếu số điểm là 0
+    lastClickTime = now; 
+    updateScore();
     autoStartGame();
 }
 
-// Sử dụng addEventListener cho tất cả các ứng dụng
 document.getElementById('button').addEventListener('click', handleClick);
-
-// Đảm bảo rằng keydown được xử lý đúng cách
 document.addEventListener('keydown', function(event) {
-    handleClick(); // Xử lý nhấn phím
+    handleClick(); 
 });
 
-// Thêm polyfill cho `Array.prototype.includes` nếu cần
 if (!Array.prototype.includes) {
     Array.prototype.includes = function(searchElement, fromIndex) {
         if (this == null) {
             throw new TypeError('"this" is null or not defined');
         }
         var O = Object(this);
-        var len = O.length >>> 0; // Chuyển đổi thành số nguyên không dấu
+        var len = O.length >>> 0; 
         if (len === 0) {
             return false;
         }
-        var n = fromIndex | 0; // Toán tử bitwise OR để chuyển đổi
+        var n = fromIndex | 0; 
         var k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
         while (k < len) {
             if (O[k] === searchElement) {
@@ -105,5 +107,4 @@ if (!Array.prototype.includes) {
     };
 }
 
-// Tự động bắt đầu trò chơi ngay khi load trang nếu điểm là 0
 autoStartGame();
