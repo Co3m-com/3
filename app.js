@@ -6,7 +6,21 @@ var gameInterval;
 var yellowActive = false; // Biến để theo dõi màu vàng
 
 function updateScore() {
-    document.getElementById('score').innerText = score;
+    // Chỉ cập nhật điểm nếu không phải 0, và làm cho nó hiển thị
+    if (score > 0) {
+        document.getElementById('score').innerText = score;
+        document.getElementById('score').style.opacity = '1'; // Hiện số điểm
+    } else {
+        document.getElementById('score').style.opacity = '0'; // Ẩn số 0
+    }
+
+    // Ẩn chữ "CO3M.COM" nếu điểm số tăng
+    const siteName = document.getElementById('site-name');
+    if (score > 0) {
+        siteName.style.opacity = '0'; // Ẩn chữ
+    } else {
+        siteName.style.opacity = '1'; // Hiện chữ
+    }
 }
 
 function changeToYellow() {
@@ -20,10 +34,9 @@ function changeToYellow() {
 
 function startAutoColorChange() {
     body.style.backgroundColor = "green";
-    // Clear interval trước khi bắt đầu lại
     clearInterval(gameInterval);
     gameInterval = setInterval(() => {
-        if (!yellowActive) { // Chỉ thay đổi màu sang vàng nếu màu vàng chưa được sử dụng
+        if (!yellowActive) {
             changeToYellow(); // Gọi hàm để thay đổi thành màu vàng
         }
     }, 900); // Đợi 900ms để thay màu vàng
@@ -64,7 +77,6 @@ function handleClick() {
         } else if (timeDiff >= 900 && timeDiff <= 1000) {
             score++; 
             body.style.backgroundColor = ""; 
-            // Reset biến vàng sau mỗi lần tạo màu vàng
             yellowActive = false;
         } else if (timeDiff > 1000) {
             body.style.backgroundColor = "red"; 
@@ -84,27 +96,5 @@ document.getElementById('button').addEventListener('click', handleClick);
 document.addEventListener('keydown', function(event) {
     handleClick(); 
 });
-
-if (!Array.prototype.includes) {
-    Array.prototype.includes = function(searchElement, fromIndex) {
-        if (this == null) {
-            throw new TypeError('"this" is null or not defined');
-        }
-        var O = Object(this);
-        var len = O.length >>> 0; 
-        if (len === 0) {
-            return false;
-        }
-        var n = fromIndex | 0; 
-        var k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
-        while (k < len) {
-            if (O[k] === searchElement) {
-                return true;
-            }
-            k++;
-        }
-        return false;
-    };
-}
 
 autoStartGame();
