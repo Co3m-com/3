@@ -14,24 +14,24 @@
     </script>
 </head>
 <body>
+    <div id="score" style="opacity: 0;">0</div> <!-- Ẩn số 0 -->
+    <div id="site-name">CO3M.COM</div>
+    <button id="button" aria-label="Nhấn vào đây để chơi"></button>
 
-<div id="score">0</div>
-<button id="button" aria-label="Nhấn vào đây để chơi"></button>
+    <script src="app.js"></script>
 
-<script src="app.js"></script>
-
-<!-- Đăng ký service worker -->
-<script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-            navigator.serviceWorker.register('service-worker.js').then(function(registration) {
-                console.log('Service Worker registered with scope:', registration.scope);
-            }).catch(function(error) {
-                console.log('Service Worker registration failed:', error);
+    <!-- Đăng ký service worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('service-worker.js').then(function(registration) {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                }).catch(function(error) {
+                    console.log('Service Worker registration failed:', error);
+                });
             });
-        });
-    }
-</script>
+        }
+    </script>
 
 </body>
 </html>
