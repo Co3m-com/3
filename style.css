@@ -67,4 +67,5 @@ body {
     transform: translate(-50%, -50%);
     color: yellow;
     pointer-events: none; /* Để không bị ảnh hưởng bởi các sự kiện click */
+    white-space: nowrap;
 }
