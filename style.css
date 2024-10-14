@@ -66,6 +66,6 @@ body {
     left: 50%;
     transform: translate(-50%, -50%);
     text-align: center; /* Giữa nội dung */
-    white-space: nowrap;
+    white-space: nowrap; /* Ngăn không cho xuống dòng */
     pointer-events: none;
 }
