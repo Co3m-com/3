@@ -6,7 +6,7 @@
 }
 
 body {
-    height: 100vh;
+    height: 100vmin;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -43,18 +43,28 @@ body {
     transform: translate(-50%, -50%);
     color: white;
     pointer-events: none;
-    transition: opacity 0.5s; /* Thêm hiệu ứng chuyển đổi */
 }
 
 /* Định dạng chữ "CO3M.COM" */
 #site-name {
-    font-size: 18.2vw;
+    font-size: 18vw;
     font-weight: bold;
     position: absolute;
-    top: 45%;
+    top: 45vmin;
     left: 50%;
     transform: translate(-50%, -50%);
     color: white; /* Màu chữ - bạn có thể thay đổi */
     pointer-events: none; /* Để không bị ảnh hưởng bởi các sự kiện click */
-    transition: opacity 0.5s; /* Thêm hiệu ứng chuyển đổi */
+}
+
+/* Định dạng hướng dẫn */
+#instruction {
+    font-size: 5vw; /* Kích thước chữ điều chỉnh theo nhu cầu */
+    color: red; /* Màu chữ vàng */
+    position: absolute;
+    top: 70vmin; /* Đặt vị trí nằm dưới số điểm */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center; /* Giữa nội dung */
+    white-space: nowrap; /* Ngăn không cho xuống dòng */
 }

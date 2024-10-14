@@ -10,8 +10,10 @@ function updateScore() {
     if (score > 0) {
         document.getElementById('score').innerText = score;
         document.getElementById('score').style.opacity = '1'; // Hiện số điểm
+        document.getElementById('instruction').style.opacity = '0'; // Ẩn hướng dẫn khi điểm số tăng
     } else {
         document.getElementById('score').style.opacity = '0'; // Ẩn số 0
+        document.getElementById('instruction').style.opacity = '1'; // Hiện hướng dẫn
     }
 
     // Ẩn chữ "CO3M.COM" nếu điểm số tăng
@@ -28,7 +30,7 @@ function changeToYellow() {
     yellowActive = true; // Đánh dấu rằng màu vàng đang hoạt động
     setTimeout(() => {
         body.style.backgroundColor = ""; 
-        yellowActive = false; // Đánh dấu rằng màu vàng đã không còn sử dụng
+        yellowActive = false; // Đánh dấu rằng màu vàng đã không còn
     }, 100); // Giữ màu vàng trong 100ms
 }
 
