@@ -67,4 +67,5 @@ body {
     transform: translate(-50%, -50%);
     text-align: center; /* Giữa nội dung */
     white-space: nowrap;
+    pointer-events: none;
 }
