@@ -59,13 +59,12 @@ body {
 
 /* Định dạng hướng dẫn */
 #instruction {
-    font-size: 5vw; /* Kích thước chữ điều chỉnh theo nhu cầu */
+    font-size: 5vw;
     font-weight: bold;
-    color: red; /* Màu chữ vàng */
     position: absolute;
-    top: 70vmin; /* Đặt vị trí nằm dưới số điểm */
+    top: 70vmin;
     left: 50%;
     transform: translate(-50%, -50%);
-    white-space: nowrap; /* Ngăn không cho xuống dòng */
+    color: yellow;
     pointer-events: none; /* Để không bị ảnh hưởng bởi các sự kiện click */
 }
