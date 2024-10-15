@@ -59,7 +59,7 @@ body {
 
 /* Định dạng hướng dẫn */
 #instruction {
-    font-size: 5vw;
+    font-size: 3vw;
     font-weight: bold;
     position: absolute;
     top: 70vmin;
