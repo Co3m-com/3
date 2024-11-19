@@ -1,37 +1,43 @@
-const CACHE_NAME = 'v1';
-const CACHE_ASSETS = [
-    '/', // Đây là trang chính
-    'index.html',
-    'style.css',
-    'app.js',
+const CACHE_NAME = 'game-cache-v1'; // Thay đổi tên này khi có bản cập nhật
+const FILES_TO_CACHE = [
+    '/',
+    '/index.html',
+    '/styles.css',
+    '/script.js',
 ];
 
-// Thiết lập cache khi service worker được cài đặt
-self.addEventListener('install', (event) => {
+// Cài đặt Service Worker
+self.addEventListener('install', event => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(CACHE_ASSETS);
-        })
+        caches.open(CACHE_NAME)
+            .then(cache => {
+                return cache.addAll(FILES_TO_CACHE);
+            })
     );
 });
 
-// Lấy tài nguyên từ cache khi có yêu cầu
-self.addEventListener('fetch', (event) => {
+// Lấy nội dung từ Cache hoặc Network
+self.addEventListener('fetch', event => {
     event.respondWith(
-        caches.match(event.request).then((response) => {
-            return response || fetch(event.request);
-        })
+        caches.match(event.request)
+            .then(response => {
+                return response || fetch(event.request);
+            })
     );
 });
 
-// Cập nhật cache sau 7 ngày
-setInterval(() => {
-    caches.keys().then((cacheNames) => {
-        cacheNames.forEach((name) => {
-            if (name !== CACHE_NAME) {
-                caches.delete(name);
-            }
-        });
-    });
-}, 7 * 24 * 60 * 60 * 1000); // 7 ngày
-
+// Xóa cache khi có phiên bản mới
+self.addEventListener('activate', event => {
+    const cacheWhitelist = [CACHE_NAME];
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.map(cacheName => {
+                    if (cacheWhitelist.indexOf(cacheName) === -1) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        })
+    );
+});
