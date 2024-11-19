@@ -2,37 +2,28 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>CO3M.COM</title>
-    <link rel="stylesheet" href="style.css">
-    <script>
-        // Polyfill cho các trình duyệt cũ không hỗ trợ fetch
-        if (!window.fetch) {
-            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/fetch/2.0.4/fetch.min.js"><\/script>');
-        }
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CO3M.COM GAME KHÔNG CẦN MẠNG</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="score" style="opacity: 0;">0</div> <!-- Ẩn số 0 -->
-    <div id="site-name">CO3M.COM</div>
-    <button id="button" aria-label="Nhấn vào đây để chơi"></button>
-    <div id="instruction"> CHẠM ĐÚNG MÀU VÀNG SẼ TĂNG ĐIỂM(Game chơi không cần mạng) </div> <!-- Thêm hướng dẫn -->
+    <div id="score">0</div>
+    <div id="text">CO3M.COM</div>
+    <div id="click-area"></div>
 
-    <script src="app.js"></script>
-
-    <!-- Đăng ký service worker -->
+    <script src="script.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('service-worker.js').then(function(registration) {
-                    console.log('Service Worker registered with scope:', registration.scope);
-                }).catch(function(error) {
-                    console.log('Service Worker registration failed:', error);
-                });
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(function(registration) {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('Service Worker registration failed:', error);
+                    });
             });
         }
     </script>
-
 </body>
 </html>
