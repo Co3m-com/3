@@ -66,7 +66,7 @@ function handleClick(event) {
         speak("Hãy chạm thật nhanh hơn nữa để tăng điểm!");
         notificationInterval = setInterval(() => {
             speak("Hãy chạm thật nhanh hơn nữa để tăng điểm!");
-        }, 10000); // Lặp lại sau mỗi 5 phút
+        }, 5); // Lặp lại sau mỗi 5 phút
     }
 }
 
