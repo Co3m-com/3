@@ -63,10 +63,10 @@ function handleClick(event) {
     // Xử lý thông báo giọng nói
     if (!firstClickHandled) {
         firstClickHandled = true;
-        speak("CO3M CHẤM COM GAME KHÔNG CẦN MẠNG!");
+        speak("Hãy chạm thật nhanh hơn nữa để tăng điểm!");
         notificationInterval = setInterval(() => {
-            speak("CO3M CHẤM COM GAME KHÔNG CẦN MẠNG!");
-        }, 100000); // Lặp lại sau mỗi 5 phút
+            speak("Hãy chạm thật nhanh hơn nữa để tăng điểm!");
+        }, 10000); // Lặp lại sau mỗi 5 phút
     }
 }
 
