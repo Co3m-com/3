@@ -63,9 +63,9 @@ function handleClick(event) {
     // Xử lý thông báo giọng nói
     if (!firstClickHandled) {
         firstClickHandled = true;
-        speak("Hãy bấm thật nhanh hơn nữa để tăng điểm!");
+        speak("Hãy bấm nhanh hơn!");
         notificationInterval = setInterval(() => {
-            speak("Hãy bấm thật nhanh hơn nữa để tăng điểm!");
+            speak("Hãy bấm nhanh hơn!");
         }, 5); // Lặp lại sau mỗi 5 phút
     }
 }
