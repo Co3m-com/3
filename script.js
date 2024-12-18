@@ -2,7 +2,6 @@ var score = 0;
 var lastClickTime;
 var keydownActive = false;
 var firstClickHandled = false;
-var notificationInterval;
 
 function resetScore() {
     score = 0;
@@ -36,12 +35,6 @@ function createWave(x, y) {
     });
 }
 
-function speak(message) {
-    var utterance = new SpeechSynthesisUtterance(message);
-    utterance.lang = 'vi-VN';  // Ngôn ngữ tiếng Việt
-    window.speechSynthesis.speak(utterance);
-}
-
 function handleClick(event) {
     var currentTime = new Date().getTime();
 
@@ -58,6 +51,9 @@ function handleClick(event) {
     setTimeout(() => {
         document.body.classList.remove('clicked');
     }, 300);
+    lastClickTime = currentTime;
+
+    // Xử lý thông báo giọng nói đã bị xóa
 }
 
 document.getElementById('click-area').addEventListener('click', handleClick);
