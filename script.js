@@ -58,16 +58,6 @@ function handleClick(event) {
     setTimeout(() => {
         document.body.classList.remove('clicked');
     }, 300);
-    lastClickTime = currentTime;
-
-    // Xử lý thông báo giọng nói
-    if (!firstClickHandled) {
-        firstClickHandled = true;
-        speak("Hãy bấm nhanh hơn!");
-        notificationInterval = setInterval(() => {
-            speak("Hãy bấm nhanh hơn!");
-        }, 5); // Lặp lại sau mỗi 5 phút
-    }
 }
 
 document.getElementById('click-area').addEventListener('click', handleClick);
