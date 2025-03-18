@@ -16,7 +16,7 @@ body {
     font-family: 'Arial', sans-serif;
     user-select: none;
     position: relative;
-    animation: backgroundAnimation 30s infinite alternate;
+    animation: backgroundAnimation 10s infinite alternate;
     transition: filter 0.3s;
 }
 
