@@ -11,29 +11,19 @@
     <div id="text">CO3M.COM</div>
     <div id="click-area"></div>
 
+    <script src="script.js"></script>
     <script>
-        // Chuyển hướng URL
-        const currentURL = window.location.href.toUpperCase();
-        if (currentURL.includes("HTTPS://CO3M.COM/MUA_LẺ")) {
-            window.location.href = "https://vt.tiktok.com/ZSr7sg6kK/?page=TikTokShop";
-        } else if (currentURL.includes("HTTPS://CO3M.COM/MUA_SỈ")) {
-            window.location.href = "https://facebook.com/mua.dau.1";
-        } else {
-            // Khởi tạo Service Worker cho trò chơi
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('service-worker.js')
-                        .then(function(registration) {
-                            console.log('Service Worker registered with scope:', registration.scope);
-                        })
-                        .catch(function(error) {
-                            console.log('Service Worker registration failed:', error);
-                        });
-                });
-            }
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(function(registration) {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
         }
     </script>
-
-    <script src="script.js"></script>
 </body>
 </html>
