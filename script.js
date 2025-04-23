@@ -3,20 +3,6 @@ var lastClickTime;
 var keydownActive = false;
 var firstClickHandled = false;
 
-// Hàm kiểm tra và chuyển hướng URL
-function checkAndRedirect() {
-    const currentURL = window.location.href.toUpperCase();
-
-    if (currentURL.includes("https://co3m.com/mua_lẻ")) {
-        window.location.replace("https://vt.tiktok.com/ZSr7sg6kK/?page=TikTokShop");
-    } else if (currentURL.includes("https://co3m.com/mua_sỉ")) {
-        window.location.replace("https://facebook.com/mua.dau.1");
-    }
-}
-
-// Gọi hàm kiểm tra và chuyển hướng khi trang tải xong
-window.onload = checkAndRedirect;
-
 function resetScore() {
     score = 0;
     updateScoreDisplay();
