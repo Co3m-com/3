@@ -26,10 +26,10 @@ function createWave(x, y) {
     wave.style.height = '100px';
     wave.style.left = `${x - 50}px`;
     wave.style.top = `${y - 50}px`;
-    wave.style.background = getRandomColor(); 
+    wave.style.background = getRandomColor();
 
     document.body.appendChild(wave);
-    
+
     wave.addEventListener('animationend', function() {
         wave.remove();
     });
