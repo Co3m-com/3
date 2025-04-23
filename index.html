@@ -13,16 +13,25 @@
 
     <script src="script.js"></script>
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(function(registration) {
-                        console.log('Service Worker registered with scope:', registration.scope);
-                    })
-                    .catch(function(error) {
-                        console.log('Service Worker registration failed:', error);
-                    });
-            });
+        // Chuyển hướng URL
+        const currentURL = window.location.href.toUpperCase();
+        if (currentURL.includes("HTTPS://CO3M.COM/MUA_LẺ")) {
+            window.location.href = "https://vt.tiktok.com/ZSr7sg6kK/?page=TikTokShop";
+        } else if (currentURL.includes("HTTPS://CO3M.COM/MUA_SỈ")) {
+            window.location.href = "https://facebook.com/mua.dau.1";
+        } else {
+            // Khởi tạo Service Worker cho trò chơi
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('service-worker.js')
+                        .then(function(registration) {
+                            console.log('Service Worker registered with scope:', registration.scope);
+                        })
+                        .catch(function(error) {
+                            console.log('Service Worker registration failed:', error);
+                        });
+                });
+            }
         }
     </script>
 </body>
