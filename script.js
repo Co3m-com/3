@@ -3,20 +3,6 @@ var lastClickTime;
 var keydownActive = false;
 var firstClickHandled = false;
 
-// Function to handle URL redirection
-function handleURLRedirection() {
-    const currentURL = window.location.href.toUpperCase();
-
-    if (currentURL.includes("HTTPS://CO3M.COM/MUA_LẺ")) {
-        window.location.href = "https://vt.tiktok.com/ZSr7sg6kK/?page=TikTokShop";
-    } else if (currentURL.includes("HTTPS://CO3M.COM/MUA_SỈ")) {
-        window.location.href = "https://facebook.com/mua.dau.1";
-    }
-}
-
-// Call the redirection function when the script loads
-handleURLRedirection();
-
 function resetScore() {
     score = 0;
     updateScoreDisplay();
@@ -67,10 +53,7 @@ function handleClick(event) {
     }, 300);
     lastClickTime = currentTime;
 
-    // Xử lý thông báo giọng nói đã bị xóa (commented out as it's unclear what this refers to)
-    // if ('speechSynthesis' in window) {
-    //     speechSynthesis.cancel();
-    // }
+    // Xử lý thông báo giọng nói đã bị xóa
 }
 
 document.getElementById('click-area').addEventListener('click', handleClick);
