@@ -1,10 +1,23 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>CO3M.COM</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+        // Hàm chuyển hướng dựa trên URL hiện tại
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname.toLowerCase();
+
+            if (currentPath === '/mua_lẻ') {
+                window.location.href = 'https://vt.tiktok.com/ZSr7sg6kK/?page=TikTokShop';
+            } else if (currentPath === '/mua_sỉ') {
+                window.location.href = 'https://facebook.com/mua.dau.1';
+            }
+            // Nếu muốn xử lý các trường hợp khác, có thể thêm vào đây
+        });
+    </script>
 </head>
 <body>
     <div id="score">0</div>
