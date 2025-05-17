@@ -2,6 +2,9 @@ var score = 0;
 var lastClickTime;
 var keydownActive = false;
 var firstClickHandled = false;
+var touchStartY = null;
+var touchStartX = null;
+var SWIPE_THRESHOLD = 50; // Khoảng cách vuốt tối thiểu để kích hoạt tải lại
 
 function resetScore() {
     score = 0;
@@ -65,16 +68,43 @@ document.getElementById('click-area').addEventListener('contextmenu', function(e
 
 document.addEventListener('keydown', function(event) {
     if (event.key === 'F5') {
-        event.preventDefault(); // Ngăn chặn hành động mặc định của F5
-        return; // Thoát khỏi hàm, không thực hiện hành động click
-    }
-    if (!keydownActive) {
+        event.preventDefault(); // Ngăn chặn hành vi mặc định của F5
+        location.reload(); // Tải lại trang
+    } else if (!keydownActive) {
         handleClick({ clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 });
         keydownActive = true;
     }
-    event.preventDefault();
 });
 
 document.addEventListener('keyup', function(event) {
     keydownActive = false;
+});
+
+// Xử lý sự kiện vuốt trên màn hình cảm ứng
+document.addEventListener('touchstart', function(event) {
+    touchStartY = event.touches[0].clientY;
+    touchStartX = event.touches[0].clientX;
+});
+
+document.addEventListener('touchmove', function(event) {
+    if (touchStartY === null || touchStartX === null) {
+        return;
+    }
+
+    var touchEndY = event.touches[0].clientY;
+    var touchEndX = event.touches[0].clientX;
+
+    var deltaY = touchEndY - touchStartY;
+    var deltaX = touchEndX - touchStartX;
+
+    if (Math.abs(deltaY) > SWIPE_THRESHOLD || Math.abs(deltaX) > SWIPE_THRESHOLD) {
+        location.reload(); // Tải lại trang khi vuốt đủ khoảng cách
+        touchStartY = null;
+        touchStartX = null;
+    }
+});
+
+document.addEventListener('touchend', function() {
+    touchStartY = null;
+    touchStartX = null;
 });
