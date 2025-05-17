@@ -4,7 +4,7 @@ var keydownActive = false;
 var firstClickHandled = false;
 var touchStartY = null;
 var touchStartX = null;
-var SWIPE_THRESHOLD = 50; // Khoảng cách vuốt tối thiểu để kích hoạt tải lại
+var SWIPE_THRESHOLD = 100; // Khoảng cách vuốt tối thiểu để kích hoạt tải lại
 
 function resetScore() {
     score = 0;
