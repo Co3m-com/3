@@ -108,3 +108,19 @@ document.addEventListener('touchend', function() {
     touchStartY = null;
     touchStartX = null;
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const body = document.body;
+    const currentBackground = window.getComputedStyle(body).background;
+
+    // Tạm thời xóa animation
+    body.style.animation = 'none';
+
+    // Đặt lại background (có thể không cần thiết nếu đã đặt trong CSS)
+    body.style.background = currentBackground;
+
+    // Kích hoạt lại animation sau một khoảng thời gian rất ngắn
+    setTimeout(() => {
+        body.style.animation = 'backgroundAnimation 10s infinite alternate';
+    }, 1);
+});
