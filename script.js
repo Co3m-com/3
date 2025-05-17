@@ -26,10 +26,10 @@ function createWave(x, y) {
     wave.style.height = '100px';
     wave.style.left = `${x - 50}px`;
     wave.style.top = `${y - 50}px`;
-    wave.style.background = getRandomColor(); 
+    wave.style.background = getRandomColor();
 
     document.body.appendChild(wave);
-    
+
     wave.addEventListener('animationend', function() {
         wave.remove();
     });
@@ -64,6 +64,10 @@ document.getElementById('click-area').addEventListener('contextmenu', function(e
 });
 
 document.addEventListener('keydown', function(event) {
+    if (event.key === 'F5') {
+        event.preventDefault(); // Ngăn chặn hành động mặc định của F5
+        return; // Thoát khỏi hàm, không thực hiện hành động click
+    }
     if (!keydownActive) {
         handleClick({ clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 });
         keydownActive = true;
