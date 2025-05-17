@@ -4,8 +4,7 @@ var keydownActive = false;
 var firstClickHandled = false;
 var touchStartY = null;
 var touchStartX = null;
-var SWIPE_THRESHOLD = 50; // Khoảng cách vuốt tối thiểu để kích hoạt đặt lại màu
-var originalBackgroundColor = document.body.style.backgroundColor || 'white'; // Lưu màu nền ban đầu
+var SWIPE_THRESHOLD = 50; // Khoảng cách vuốt tối thiểu để kích hoạt tải lại
 
 function resetScore() {
     score = 0;
@@ -67,14 +66,10 @@ document.getElementById('click-area').addEventListener('contextmenu', function(e
     handleClick(event);
 });
 
-function resetBackgroundColor() {
-    document.body.style.backgroundColor = originalBackgroundColor;
-}
-
 document.addEventListener('keydown', function(event) {
     if (event.key === 'F5') {
         event.preventDefault(); // Ngăn chặn hành vi mặc định của F5
-        resetBackgroundColor(); // Đặt lại màu nền
+        location.reload(); // Tải lại trang
     } else if (!keydownActive) {
         handleClick({ clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 });
         keydownActive = true;
@@ -103,7 +98,7 @@ document.addEventListener('touchmove', function(event) {
     var deltaX = touchEndX - touchStartX;
 
     if (Math.abs(deltaY) > SWIPE_THRESHOLD || Math.abs(deltaX) > SWIPE_THRESHOLD) {
-        resetBackgroundColor(); // Đặt lại màu nền khi vuốt đủ khoảng cách
+        location.reload(); // Tải lại trang khi vuốt đủ khoảng cách
         touchStartY = null;
         touchStartX = null;
     }
