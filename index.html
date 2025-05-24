@@ -14,17 +14,19 @@
 
     <script src="script.js"></script>
     <script>
-        // Hiển thị ảnh intro trong 1 giây rồi ẩn đi
         window.addEventListener('load', function() {
             const introImage = document.getElementById('intro-image');
             introImage.style.display = 'block'; // Đảm bảo ảnh hiển thị ngay khi tải trang
 
-            setTimeout(() => {
-                introImage.style.opacity = '0';
-                introImage.addEventListener('transitionend', () => {
-                    introImage.style.display = 'none';
-                }, { once: true });
-            }, 1000); // Ẩn sau 1 giây
+            // Thêm sự kiện click để ẩn ảnh
+            document.addEventListener('click', function() {
+                if (introImage.style.display === 'block') { // Chỉ ẩn nếu ảnh đang hiển thị
+                    introImage.style.opacity = '0';
+                    introImage.addEventListener('transitionend', () => {
+                        introImage.style.display = 'none';
+                    }, { once: true });
+                }
+            }, { once: true }); // Chỉ kích hoạt sự kiện này một lần
 
             // Service Worker registration
             if ('serviceWorker' in navigator) {
