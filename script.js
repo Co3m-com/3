@@ -1,10 +1,13 @@
 var score = 0;
 var lastClickTime;
 var keydownActive = false;
-var firstClickHandled = false;
+var firstInteraction = false; // Biến cờ để kiểm tra tương tác đầu tiên
 var touchStartY = null;
 var touchStartX = null;
 var SWIPE_THRESHOLD = 100; // Khoảng cách vuốt tối thiểu để kích hoạt tải lại
+
+// Lấy tham chiếu đến container ảnh
+const introImageContainer = document.getElementById('intro-image-container');
 
 function resetScore() {
     score = 0;
@@ -38,7 +41,16 @@ function createWave(x, y) {
     });
 }
 
+function handleFirstInteraction() {
+    if (!firstInteraction) {
+        introImageContainer.classList.add('hidden'); // Thêm class 'hidden' để ẩn ảnh
+        firstInteraction = true;
+    }
+}
+
 function handleClick(event) {
+    handleFirstInteraction(); // Gọi hàm xử lý tương tác đầu tiên
+
     var currentTime = new Date().getTime();
 
     if (lastClickTime && (currentTime - lastClickTime >= 100 && currentTime - lastClickTime <= 120)) {
@@ -82,6 +94,7 @@ document.addEventListener('keyup', function(event) {
 
 // Xử lý sự kiện vuốt trên màn hình cảm ứng
 document.addEventListener('touchstart', function(event) {
+    handleFirstInteraction(); // Gọi hàm xử lý tương tác đầu tiên
     touchStartY = event.touches[0].clientY;
     touchStartX = event.touches[0].clientX;
 });
@@ -108,3 +121,6 @@ document.addEventListener('touchend', function() {
     touchStartY = null;
     touchStartX = null;
 });
+
+// Thêm sự kiện click/tap vào chính container ảnh để ẩn nó
+introImageContainer.addEventListener('click', handleFirstInteraction);
