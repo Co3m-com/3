@@ -39,7 +39,6 @@ body {
     object-fit: contain; /* Đảm bảo ảnh hiển thị đúng tỷ lệ */
     opacity: 1;
     transition: opacity 0.5s ease-out; /* Hiệu ứng biến mất mượt mà */
-    display: none; /* Ẩn ban đầu, sẽ hiển thị bằng JS */
 }
 
 #score {
