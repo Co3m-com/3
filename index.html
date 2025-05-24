@@ -7,32 +7,17 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <img id="intro-image" src="mbbank.png" alt="donate ủng hộ nhà phát triển">
+    <div id="intro-image-container">
+        <img src="mbbank.png" alt="MBBank Logo" id="intro-image">
+    </div>
     <div id="score">0</div>
     <div id="text">CO3M.COM</div>
     <div id="click-area"></div>
 
     <script src="script.js"></script>
     <script>
-        window.addEventListener('load', function() {
-            const introImage = document.getElementById('intro-image');
-
-            // Không cần dòng này nữa vì display: none đã bị xóa khỏi CSS
-            // introImage.style.display = 'block';
-
-            // Thêm sự kiện click để ẩn ảnh
-            document.addEventListener('click', function() {
-                // Chỉ ẩn nếu ảnh đang hiển thị (opacity > 0 hoặc chưa bị ẩn)
-                if (introImage.style.opacity !== '0') {
-                    introImage.style.opacity = '0';
-                    introImage.addEventListener('transitionend', () => {
-                        introImage.style.display = 'none';
-                    }, { once: true });
-                }
-            }, { once: true }); // Chỉ kích hoạt sự kiện này một lần
-
-            // Service Worker registration
-            if ('serviceWorker' in navigator) {
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
                 navigator.serviceWorker.register('service-worker.js')
                     .then(function(registration) {
                         console.log('Service Worker registered with scope:', registration.scope);
@@ -40,8 +25,8 @@
                     .catch(function(error) {
                         console.log('Service Worker registration failed:', error);
                     });
-            }
-        });
+            });
+        }
     </script>
 </body>
 </html>
