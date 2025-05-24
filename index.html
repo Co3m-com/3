@@ -7,14 +7,27 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <img id="intro-image" src="your-image.png" alt="Welcome Image">
     <div id="score">0</div>
     <div id="text">CO3M.COM</div>
     <div id="click-area"></div>
 
     <script src="script.js"></script>
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
+        // Hiển thị ảnh intro trong 1 giây rồi ẩn đi
+        window.addEventListener('load', function() {
+            const introImage = document.getElementById('intro-image');
+            introImage.style.display = 'block'; // Đảm bảo ảnh hiển thị ngay khi tải trang
+
+            setTimeout(() => {
+                introImage.style.opacity = '0';
+                introImage.addEventListener('transitionend', () => {
+                    introImage.style.display = 'none';
+                }, { once: true });
+            }, 1000); // Ẩn sau 1 giây
+
+            // Service Worker registration
+            if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('service-worker.js')
                     .then(function(registration) {
                         console.log('Service Worker registered with scope:', registration.scope);
@@ -22,8 +35,8 @@
                     .catch(function(error) {
                         console.log('Service Worker registration failed:', error);
                     });
-            });
-        }
+            }
+        });
     </script>
 </body>
 </html>
