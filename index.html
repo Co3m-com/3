@@ -8,10 +8,7 @@
 </head>
 <body>
     <div id="intro-image-container">
-        <picture>
-            <source srcset="donate.webp" type="image/webp">
-            <img src="mbbank.png" alt="MBBank Logo" id="intro-image">
-        </picture>
+        <img src="mbbank.png" alt="MBBank Logo" id="intro-image">
     </div>
     <div id="score">0</div>
     <div id="text">CO3M.COM</div>
@@ -19,7 +16,6 @@
 
     <script src="script.js"></script>
     <script>
-        // Đăng ký Service Worker cho PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register('service-worker.js')
