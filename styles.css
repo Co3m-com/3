@@ -28,23 +28,37 @@ body {
     100% { background: linear-gradient(135deg, #ff7f50, #ffbc34); }
 }
 
+#intro-image {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100; /* Đảm bảo ảnh nằm trên cùng */
+    max-width: 90%; /* Giới hạn kích thước ảnh trên màn hình nhỏ */
+    max-height: 90%; /* Giới hạn kích thước ảnh trên màn hình nhỏ */
+    object-fit: contain; /* Đảm bảo ảnh hiển thị đúng tỷ lệ */
+    opacity: 1;
+    transition: opacity 0.5s ease-out; /* Hiệu ứng biến mất mượt mà */
+    display: none; /* Ẩn ban đầu, sẽ hiển thị bằng JS */
+}
+
 #score {
-    position: fixed; 
-    top: 50%; 
-    left: 50%; 
-    transform: translate(-50%, -50%); 
-    color: #ffffff; 
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffffff;
     opacity: 0;
     font-weight: bold;
-    font-size: 120vh; 
+    font-size: 120vh;
     text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);
 }
 
 #text {
     position: absolute;
-    font-size: 18vw; 
+    font-size: 18vw;
     text-align: center;
-    color: #ffffff; 
+    color: #ffffff;
     font-weight: bold;
     opacity: 1;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
@@ -70,8 +84,8 @@ body {
 }
 
 #click-area {
-    width: 100vw; 
-    height: 100vh; 
+    width: 100vw;
+    height: 100vh;
     position: absolute;
     top: 0;
     left: 0;
@@ -83,7 +97,7 @@ body {
     border-radius: 50%;
     background: rgba(165, 215, 250, 0.8);
     transform: scale(0);
-    animation: wave-animation 0.8s forwards; 
+    animation: wave-animation 0.8s forwards;
     pointer-events: none;
     transition: transform 0.8s, opacity 0.8s;
 }
@@ -94,20 +108,20 @@ body {
 }
 
 .button {
-    display: inline-block; 
-    padding: 15px 30px; 
-    font-size: 16px; 
-    color: #fff; 
-    background-color: rgba(34, 193, 195, 1); 
-    border: none; 
-    border-radius: 5px; 
-    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3); 
-    cursor: pointer; 
-    transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s; 
+    display: inline-block;
+    padding: 15px 30px;
+    font-size: 16px;
+    color: #fff;
+    background-color: rgba(34, 193, 195, 1);
+    border: none;
+    border-radius: 5px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
 }
 
 .button:hover {
     transform: translateY(-5px) scale(1.05);
-    background-color: rgba(34, 193, 195, 0.8); 
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5); 
+    background-color: rgba(34, 193, 195, 0.8);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
 }
