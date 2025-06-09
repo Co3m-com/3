@@ -2,7 +2,7 @@ const CACHE_NAME = 'game-cache-v3'; // Thay đổi tên này khi có bản cập
 const FILES_TO_CACHE = [
     '/',
     '/index.html',
-    '/styles.css',
+    '/style.css',
     '/script.js',
     '/mbbank.png',
 
