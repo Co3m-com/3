@@ -1,4 +1,4 @@
-const CACHE_NAME = 'game-cache-v2'; // Thay đổi tên này khi có bản cập nhật
+const CACHE_NAME = 'game-cache-v1'; // Thay đổi tên này khi có bản cập nhật
 const FILES_TO_CACHE = [
     '/',
     '/index.html',
