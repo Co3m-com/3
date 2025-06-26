@@ -56,9 +56,9 @@ var blueDotDirection = 1;
 // Các hằng số sẽ được tính toán động dựa trên font-size
 var DOT_RATIO_TO_FONT_HEIGHT = 0.3; // Dấu chấm bằng 30% chiều cao chữ
 var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.03; // Tốc độ di chuyển theo tỷ lệ font-size (chiều cao chữ)
-var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.6; // Chiều cao nhảy mong muốn theo tỷ lệ font-size (chiều cao chữ)
+var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.277; // Chiều cao nhảy mong muốn theo tỷ lệ font-size (chiều cao chữ)
 var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.005; // Gia tốc trọng trường theo tỷ lệ font-size (chiều cao chữ)
-var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 2; // Giới hạn di chuyển theo tỷ lệ font-size (chiều cao chữ)
+var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8; // Giới hạn di chuyển theo tỷ lệ font-size (chiều cao chữ)
 
 var moveSpeedPx;
 var actualJumpHeightPx;
