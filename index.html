@@ -1,0 +1,441 @@
+Code khi bạn tách ra các file gửi tôi thì tôi kiểm tra thì các trình duyệt cũ lại không hiện gì cả mà khi chưa tách thì nó dùng ổn định bình thường ,
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>CO3M.COM (Legacy Browser Compatible - 54vw Equivalent Width)</title>
+    <style type="text/css">
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: sans-serif;
+            background-color: #f0f0f0;
+            position: relative;
+
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+
+            -webkit-tap-highlight-color: transparent;
+            -ms-touch-action: manipulation;
+            touch-action: manipulation;
+        }
+
+        .center-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            -webkit-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+            white-space: nowrap;
+        }
+
+        .text-part {
+            display: inline-block;
+            /* Đặt font-size nhỏ ban đầu, JS sẽ ghi đè */
+            font-size: 1px;
+            font-weight: 900;
+            color: black;
+            vertical-align: baseline;
+            line-height: 1;
+            text-align: left;
+        }
+
+        .red-dot-static {
+            display: inline-block;
+            /* Kích thước dấu chấm sẽ được JS tính toán theo font-size */
+            width: auto;
+            height: auto;
+            background-color: black;
+            border-radius: 50%;
+            vertical-align: baseline;
+            margin: 0 5px;
+            position: relative;
+            /* Thêm transition cho border để hiệu ứng mượt mà hơn khi va chạm */
+            transition: border 0.1s ease-out;
+        }
+
+        .blue-dot-moving {
+            position: absolute;
+            /* Kích thước dấu chấm sẽ được JS tính toán theo font-size */
+            width: auto;
+            height: auto;
+            background-color: blue;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            cursor: pointer;
+            background-color: transparent;
+        }
+    </style>
+</head>
+<body>
+    <div class="fullscreen-overlay"></div>
+
+    <div class="center-container">
+        <span id="co3m-text" class="text-part">CO3M</span><div id="red-dot-static-id" class="red-dot-static"></div><span id="com-text" class="text-part">COM</span>
+        <div id="blue-dot-moving-id" class="blue-dot-moving"></div>
+    </div>
+
+    <script type="text/javascript">
+        // Polyfill cho requestAnimationFrame
+        (function() {
+            var lastTime = 0;
+            var vendors = ['webkit', 'moz'];
+            var x;
+            for(x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+                window.requestAnimationFrame = window['webkitRequestAnimationFrame'];
+                window.cancelAnimationFrame =
+                  window['webkitCancelAnimationFrame'] || window['webkitCancelRequestAnimationFrame'];
+            }
+
+            if (!window.requestAnimationFrame) {
+                window.requestAnimationFrame = function(callback, element) {
+                    var currTime = new Date().getTime();
+                    var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+                    var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+                      timeToCall);
+                    lastTime = currTime + timeToCall;
+                    return id;
+                };
+            }
+
+            if (!window.cancelAnimationFrame) {
+                window.cancelAnimationFrame = function(id) {
+                    clearTimeout(id);
+                };
+            }
+        }());
+
+        // Hàm hỗ trợ addEventListener và attachEvent
+        function addEvent(element, eventName, callback) {
+            if (element.addEventListener) {
+                element.addEventListener(eventName, callback, false);
+            } else if (element.attachEvent) {
+                element.attachEvent('on' + eventName, function(e) {
+                    e = e || window.event;
+                    e.target = e.target || e.srcElement;
+                    e.preventDefault = e.preventDefault || function() { e.returnValue = false; };
+                    e.stopPropagation = e.stopPropagation || function() { e.cancelBubble = true; };
+                    callback.call(element, e);
+                });
+            }
+        }
+
+        var textContainer = document.getElementById('co3m-text').parentNode;
+        var co3mText = document.getElementById('co3m-text');
+        var comText = document.getElementById('com-text');
+        var redDotStatic = document.getElementById('red-dot-static-id');
+        var blueDotMoving = document.getElementById('blue-dot-moving-id');
+        var fullscreenOverlay = document.getElementsByClassName('fullscreen-overlay')[0];
+
+        var blueDotX;
+        var blueDotY;
+        var blueDotDirection = 1;
+
+        // Các hằng số sẽ được tính toán động dựa trên font-size
+        var DOT_RATIO_TO_FONT_HEIGHT = 0.3; // Dấu chấm bằng 30% chiều cao chữ
+        var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.03; // Tốc độ di chuyển theo tỷ lệ font-size (chiều cao chữ)
+        var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.6; // Chiều cao nhảy mong muốn theo tỷ lệ font-size (chiều cao chữ)
+        var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.005; // Gia tốc trọng trường theo tỷ lệ font-size (chiều cao chữ)
+        var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 2; // Giới hạn di chuyển theo tỷ lệ font-size (chiều cao chữ)
+
+        var moveSpeedPx;
+        var actualJumpHeightPx;
+        var gravityPx;
+        var movementLimitPx;
+        var currentFontSizePx; // Kích thước chữ hiện tại tính bằng pixel
+
+        var isJumping = false;
+        var jumpVelocity = 0;
+        var blueDotBaseY;
+
+        var redDotRadiusPx;
+        var blueDotRadiusPx;
+
+        var redDotCenterXPx;
+        var leftBoundaryPx;
+        var rightBoundaryPx;
+
+        // Hàm tính toán và áp dụng kích thước chữ mới
+        function adjustFontSize() {
+            var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+            var desiredWidthVW = 18 * 3; // Gấp 3 lần 18vw = 54vw
+            var desiredWidthPx = (desiredWidthVW / 100) * viewportWidth; // Chiều rộng mục tiêu bằng pixel
+
+            // Để đo chiều rộng của văn bản một cách chính xác, chúng ta cần đặt một font-size chuẩn
+            // và sau đó tính toán tỷ lệ.
+            var TEST_FONT_SIZE = 100; // Đặt font-size tạm thời là 100px để đo
+
+            // Lưu trạng thái hiện tại để khôi phục sau
+            var originalCo3mFontSize = co3mText.style.fontSize;
+            var originalComFontSize = comText.style.fontSize;
+            var originalRedDotWidth = redDotStatic.style.width;
+            var originalRedDotHeight = redDotStatic.style.height;
+
+            // Áp dụng font-size TEST_FONT_SIZE tạm thời cho văn bản
+            co3mText.style.fontSize = TEST_FONT_SIZE + 'px';
+            comText.style.fontSize = TEST_FONT_SIZE + 'px';
+
+            // Đặt kích thước dấu chấm theo tỷ lệ của TEST_FONT_SIZE
+            var testDotSizePx = TEST_FONT_SIZE * DOT_RATIO_TO_FONT_HEIGHT;
+            redDotStatic.style.width = testDotSizePx + 'px';
+            redDotStatic.style.height = testDotSizePx + 'px';
+            // Không cần đặt blueDotMoving ở đây vì nó không ảnh hưởng đến chiều rộng của textContainer
+
+            // Đo chiều rộng của toàn bộ textContainer với font-size TEST_FONT_SIZE
+            var textContainerWidthAtTestSize = textContainer.offsetWidth;
+
+            // Khôi phục lại trạng thái ban đầu (nếu có, hoặc đặt về 1px như ban đầu)
+            co3mText.style.fontSize = originalCo3mFontSize;
+            comText.style.fontSize = originalComFontSize;
+            redDotStatic.style.width = originalRedDotWidth;
+            redDotStatic.style.height = originalRedDotHeight;
+
+
+            // Nếu textContainerWidthAtTestSize bằng 0 hoặc quá nhỏ, tránh chia cho 0
+            if (textContainerWidthAtTestSize === 0) {
+                 textContainerWidthAtTestSize = 1; // Fallback an toàn
+            }
+
+            // Tính toán font-size mới cần thiết để đạt desiredWidthPx
+            // Tỷ lệ = (desiredWidthPx / textContainerWidthAtTestSize)
+            // newFontSize = TEST_FONT_SIZE * Tỷ lệ
+            var newFontSize = TEST_FONT_SIZE * (desiredWidthPx / textContainerWidthAtTestSize);
+
+            // Giới hạn kích thước chữ tối đa/tối thiểu nếu cần
+            var MIN_FONT_SIZE = 20; // Ví dụ: không nhỏ hơn 20px
+            var MAX_FONT_SIZE = 300; // Tăng MAX_FONT_SIZE cho trường hợp này
+            newFontSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, newFontSize));
+
+            currentFontSizePx = newFontSize; // Lưu lại kích thước chữ hiện tại
+
+            // Áp dụng font-size mới
+            co3mText.style.fontSize = currentFontSizePx + 'px';
+            comText.style.fontSize = currentFontSizePx + 'px';
+
+            // Tính toán lại kích thước dấu chấm dựa trên font-size đã tính toán
+            var dotSizePx = currentFontSizePx * DOT_RATIO_TO_FONT_HEIGHT;
+            redDotStatic.style.width = dotSizePx + 'px';
+            redDotStatic.style.height = dotSizePx + 'px';
+            blueDotMoving.style.width = dotSizePx + 'px';
+            blueDotMoving.style.height = dotSizePx + 'px';
+
+            // Tính toán lại các hằng số chuyển động dựa trên font-size
+            moveSpeedPx = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT;
+            actualJumpHeightPx = currentFontSizePx * DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT;
+            gravityPx = currentFontSizePx * GRAVITY_RATIO_TO_FONT_HEIGHT;
+            movementLimitPx = currentFontSizePx * MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT;
+
+            // Debug:
+            // console.log("Viewport Width:", viewportWidth, "Desired VW:", desiredWidthVW, "Desired PX:", desiredWidthPx, "Calculated Font Size:", currentFontSizePx);
+        }
+
+        function updateBlueDotPosition() {
+            blueDotMoving.style.left = blueDotX + 'px';
+            blueDotMoving.style.top = blueDotY + 'px';
+        }
+
+        function moveBlueDot() {
+            blueDotX += moveSpeedPx * blueDotDirection;
+
+            // Giới hạn chuyển động trong phạm vi xác định
+            if (blueDotX > rightBoundaryPx) {
+                blueDotX = rightBoundaryPx;
+                blueDotDirection *= -1;
+            } else if (blueDotX < leftBoundaryPx) {
+                blueDotX = leftBoundaryPx;
+                blueDotDirection *= -1;
+            }
+        }
+
+        function jump() {
+            if (!isJumping) {
+                isJumping = true;
+                jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
+            }
+        }
+
+        function applyGravity() {
+            if (isJumping) {
+                blueDotY += jumpVelocity;
+                jumpVelocity += gravityPx;
+
+                if (blueDotY >= blueDotBaseY) {
+                    blueDotY = blueDotBaseY;
+                    isJumping = false;
+                    jumpVelocity = 0;
+                }
+            } else {
+                // Đặt đáy của dấu chấm xanh bằng đáy của dấu chấm đen
+                var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
+                blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
+                blueDotY = blueDotBaseY;
+            }
+        }
+
+        function checkCollision() {
+            // Lấy tọa độ trung tâm của dấu chấm đen
+            var redCenterX = redDotStatic.offsetLeft + (redDotStatic.offsetWidth / 2);
+            var redCenterY = redDotStatic.offsetTop + (redDotStatic.offsetHeight / 2);
+
+            // Khoảng cách giữa tâm hai dấu chấm
+            var dx = blueDotX + blueDotRadiusPx - redCenterX; // blueDotX là góc trên bên trái, cần cộng bán kính để ra tâm X
+            var dy = blueDotY + blueDotRadiusPx - redCenterY; // blueDotY là góc trên bên trái, cần cộng bán kính để ra tâm Y
+            var distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Tổng bán kính của hai dấu chấm
+            var minDistance = redDotRadiusPx + blueDotRadiusPx;
+
+            if (distance < minDistance) {
+                // Va chạm đã xảy ra
+                var overlap = minDistance - distance;
+                var angle = Math.atan2(dy, dx); // Góc từ tâm dấu đen đến tâm dấu xanh
+
+                // Đẩy dấu chấm xanh ra khỏi dấu chấm đen để tránh dính nhau
+                blueDotX += Math.cos(angle) * overlap;
+                blueDotY += Math.sin(angle) * overlap;
+
+                // Thay đổi hướng di chuyển của dấu chấm xanh sau va chạm
+                // Nếu dấu chấm xanh nằm bên phải tâm dấu đen, nó sẽ di chuyển sang phải
+                if (blueDotX + blueDotRadiusPx > redDotCenterXPx) { // So sánh tâm X của blueDot với tâm X của redDot
+                    blueDotDirection = 1;
+                } else {
+                    blueDotDirection = -1;
+                }
+
+                // Hiệu ứng hình ảnh khi va chạm: thêm border cho dấu chấm đen
+                redDotStatic.style.border = '2px solid red';
+                return true;
+            } else {
+                // Không va chạm: bỏ border
+                redDotStatic.style.border = 'none';
+                return false;
+            }
+        }
+
+        function gameLoop() {
+            moveBlueDot();
+            applyGravity();
+            checkCollision();
+            updateBlueDotPosition();
+            window.requestAnimationFrame(gameLoop);
+        }
+
+        function initializeGame() {
+            adjustFontSize(); // Tính toán font-size và kích thước chấm lần đầu
+
+            // Cập nhật lại các biến phụ thuộc vào kích thước sau khi adjustFontSize()
+            redDotRadiusPx = redDotStatic.offsetWidth / 2;
+            blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
+
+            // Lấy tọa độ trung tâm X của dấu chấm đen
+            // Dùng getBoundingClientRect để lấy vị trí chính xác trên viewport
+            var redDotRect = redDotStatic.getBoundingClientRect();
+            var textContainerRect = textContainer.getBoundingClientRect();
+
+            // redDotCenterXPx sẽ là vị trí X của tâm dấu chấm đen
+            // Tính toán relative to center-container's top-left for blueDotMoving's positioning
+            redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
+
+
+            // Giới hạn di chuyển cho dấu chấm xanh
+            // Blue dot sẽ di chuyển từ bên trái của dấu chấm đen đến bên phải của dấu chấm đen
+            leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx; // Giới hạn bên trái của dấu chấm xanh
+            rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx; // Giới hạn bên phải của dấu chấm xanh
+
+            // Lấy đáy của dấu chấm đen
+            // redDotStatic.offsetTop là vị trí đỉnh của dấu chấm đen relative to center-container
+            var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
+            // Đặt đáy của dấu chấm xanh bằng đáy của dấu chấm đen
+            blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
+
+
+            // Vị trí khởi tạo của dấu chấm xanh: bên phải dấu chấm đen, chạm vào nhau
+            blueDotX = redDotCenterXPx + redDotRadiusPx; // Đặt blueDotX là cạnh trái của dấu chấm xanh
+            blueDotY = blueDotBaseY;
+
+            updateBlueDotPosition();
+            gameLoop();
+        }
+
+        addEvent(window, 'load', initializeGame);
+
+        addEvent(fullscreenOverlay, 'mousedown', jump);
+        addEvent(fullscreenOverlay, 'touchstart', jump);
+
+        addEvent(window, 'keydown', function(event) {
+            if (event && event.preventDefault) {
+                event.preventDefault();
+            }
+            jump();
+        });
+
+        addEvent(window, 'contextmenu', function(event) {
+            if (event && event.preventDefault) {
+                event.preventDefault();
+            }
+            jump();
+        });
+
+        addEvent(window, 'resize', function() {
+            adjustFontSize(); // Tính toán lại kích thước chữ và chấm
+
+            // Recalculate all pixel values on resize after font size adjusted
+            redDotRadiusPx = redDotStatic.offsetWidth / 2;
+            blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
+
+            var redDotRect = redDotStatic.getBoundingClientRect();
+            var textContainerRect = textContainer.getBoundingClientRect();
+            redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
+
+            leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
+            rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
+
+            // Lấy đáy của dấu chấm đen
+            var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
+            // Đặt đáy của dấu chấm xanh bằng đáy của dấu chấm đen
+            blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
+
+
+            if (!isJumping) {
+                // Đảm bảo dấu chấm xanh không vượt quá giới hạn sau khi resize
+                if (blueDotX > rightBoundaryPx) {
+                    blueDotX = rightBoundaryPx;
+                } else if (blueDotX < leftBoundaryPx) {
+                    blueDotX = leftBoundaryPx;
+                }
+                blueDotY = blueDotBaseY; // Đặt lại vị trí Y khi không nhảy
+            } else {
+                // Nếu đang nhảy, cập nhật lại vận tốc nhảy dựa trên vị trí mới
+                // (Giả định rằng vị trí Y hiện tại vẫn hợp lệ so với blueDotBaseY mới)
+                // Cần tính toán lại jumpVelocity dựa trên khoảng cách từ vị trí hiện tại đến blueDotBaseY
+                // Giá trị này có thể phức tạp hơn nếu bạn muốn duy trì quỹ đạo nhảy chính xác
+                // Tạm thời, chúng ta sẽ điều chỉnh nó để nó hạ cánh đúng vị trí mới.
+                // blueDotY sẽ tự điều chỉnh trong applyGravity()
+            }
+            updateBlueDotPosition();
+        });
+    </script>
+</body>
+</html>
