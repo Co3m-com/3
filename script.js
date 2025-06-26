@@ -65,9 +65,9 @@ var blueDotDirection = 1;
 
 var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
 var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.03;
-var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.6;
+var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.277;
 var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.005;
-var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 2;
+var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
 
 var moveSpeedPx;
 var actualJumpHeightPx;
@@ -88,7 +88,7 @@ var rightBoundaryPx;
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-    var desiredWidthVW = 18 * 3;
+    var desiredWidthVW = 18 * 5.6;
     var desiredWidthPx = (desiredWidthVW / 100) * viewportWidth;
 
     var TEST_FONT_SIZE = 100;
