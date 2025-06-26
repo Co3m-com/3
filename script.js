@@ -80,7 +80,7 @@ var rightBoundaryPx;
 // Hàm tính toán và áp dụng kích thước chữ mới
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-    var desiredWidthVW = 18 * 3; // Gấp 3 lần 18vw = 54vw
+    var desiredWidthVW = 18 * 5.6; // Gấp 3 lần 18vw = 54vw
     var desiredWidthPx = (desiredWidthVW / 100) * viewportWidth; // Chiều rộng mục tiêu bằng pixel
 
     // Để đo chiều rộng của văn bản một cách chính xác, chúng ta cần đặt một font-size chuẩn
