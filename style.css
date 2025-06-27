@@ -32,8 +32,7 @@ body {
 
 .text-part {
     display: inline-block;
-    /* Đặt font-size mặc định đủ lớn để hiển thị ngay cả khi JS không chạy */
-    font-size: 50px; /* Đã thay đổi từ 1px để đảm bảo hiển thị */
+    font-size: 50px; 
     font-weight: 900;
     color: black;
     vertical-align: baseline;
@@ -57,7 +56,7 @@ body {
     position: absolute;
     width: auto;
     height: auto;
-    background-color: blue;
+    background-color: red;
     border-radius: 50%;
     cursor: pointer;
     z-index: 10;
