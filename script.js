@@ -1,4 +1,3 @@
-// Polyfill cho requestAnimationFrame
 (function() {
     var lastTime = 0;
     var vendors = ['webkit', 'moz'];
@@ -27,7 +26,6 @@
     }
 }());
 
-// Hàm hỗ trợ addEventListener và attachEvent
 function addEvent(element, eventName, callback) {
     if (element.addEventListener) {
         element.addEventListener(eventName, callback, false);
@@ -53,18 +51,17 @@ var blueDotX;
 var blueDotY;
 var blueDotDirection = 1;
 
-// Các hằng số sẽ được tính toán động dựa trên font-size
-var DOT_RATIO_TO_FONT_HEIGHT = 0.3; // Dấu chấm bằng 30% chiều cao chữ
-var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.03; // Tốc độ di chuyển theo tỷ lệ font-size (chiều cao chữ)
-var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.277; // Chiều cao nhảy mong muốn theo tỷ lệ font-size (chiều cao chữ)
-var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.005; // Gia tốc trọng trường theo tỷ lệ font-size (chiều cao chữ)
-var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8; // Giới hạn di chuyển theo tỷ lệ font-size (chiều cao chữ)
+var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
+var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.03;
+var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.277;
+var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.005;
+var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
 
 var moveSpeedPx;
 var actualJumpHeightPx;
 var gravityPx;
 var movementLimitPx;
-var currentFontSizePx; // Kích thước chữ hiện tại tính bằng pixel
+var currentFontSizePx;
 
 var isJumping = false;
 var jumpVelocity = 0;
@@ -77,71 +74,45 @@ var redDotCenterXPx;
 var leftBoundaryPx;
 var rightBoundaryPx;
 
-// Hàm tính toán và áp dụng kích thước chữ mới
+var animationFrameId = null;
+
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-    var desiredWidthVW = 18 * 5.6; // Gấp 3 lần 18vw = 54vw
-    var desiredWidthPx = (desiredWidthVW / 100) * viewportWidth; // Chiều rộng mục tiêu bằng pixel
+    var desiredWidthVW = 18 * 5.6;
+    var desiredWidthPx = (desiredWidthVW / 100) * viewportWidth;
 
-    // Để đo chiều rộng của văn bản một cách chính xác, chúng ta cần đặt một font-size chuẩn
-    // và sau đó tính toán tỷ lệ.
-    var TEST_FONT_SIZE = 100; // Đặt font-size tạm thời là 100px để đo
+    var TEST_FONT_SIZE = 100;
 
-    // Lưu trạng thái hiện tại để khôi phục sau
-    // (Lưu ý: CSS đã có font-size mặc định 50px, nên originalCo3mFontSize/ComFontSize có thể sẽ là rỗng nếu chưa bị JS ghi đè)
-    var originalCo3mFontSize = co3mText.style.fontSize;
-    var originalComFontSize = comText.style.fontSize;
-    var originalRedDotWidth = redDotStatic.style.width;
-    var originalRedDotHeight = redDotStatic.style.height;
-
-    // Áp dụng font-size TEST_FONT_SIZE tạm thời cho văn bản
     co3mText.style.fontSize = TEST_FONT_SIZE + 'px';
     comText.style.fontSize = TEST_FONT_SIZE + 'px';
 
-    // Đặt kích thước dấu chấm theo tỷ lệ của TEST_FONT_SIZE
     var testDotSizePx = TEST_FONT_SIZE * DOT_RATIO_TO_FONT_HEIGHT;
     redDotStatic.style.width = testDotSizePx + 'px';
     redDotStatic.style.height = testDotSizePx + 'px';
-    // blueDotMoving không ảnh hưởng đến chiều rộng của textContainer, nên không cần đặt ở đây
 
-    // Đo chiều rộng của toàn bộ textContainer với font-size TEST_FONT_SIZE
     var textContainerWidthAtTestSize = textContainer.offsetWidth;
 
-    // Khôi phục lại trạng thái ban đầu của font-size và kích thước chấm
-    // (Điều này có thể không cần thiết nếu bạn đặt 50px cố định trong CSS và JS sẽ tính lại ngay)
-    co3mText.style.fontSize = originalCo3mFontSize; // Sẽ đặt lại là rỗng hoặc giá trị cũ
-    comText.style.fontSize = originalComFontSize;   // Sẽ đặt lại là rỗng hoặc giá trị cũ
-    redDotStatic.style.width = originalRedDotWidth;
-    redDotStatic.style.height = originalRedDotHeight;
-
-
-    // Nếu textContainerWidthAtTestSize bằng 0 hoặc quá nhỏ, tránh chia cho 0
     if (textContainerWidthAtTestSize === 0) {
-         textContainerWidthAtTestSize = 1; // Fallback an toàn
+         textContainerWidthAtTestSize = 1;
     }
 
-    // Tính toán font-size mới cần thiết để đạt desiredWidthPx
     var newFontSize = TEST_FONT_SIZE * (desiredWidthPx / textContainerWidthAtTestSize);
 
-    // Giới hạn kích thước chữ tối đa/tối thiểu
     var MIN_FONT_SIZE = 20;
     var MAX_FONT_SIZE = 300;
     newFontSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, newFontSize));
 
-    currentFontSizePx = newFontSize; // Lưu lại kích thước chữ hiện tại
+    currentFontSizePx = newFontSize;
 
-    // Áp dụng font-size mới
     co3mText.style.fontSize = currentFontSizePx + 'px';
     comText.style.fontSize = currentFontSizePx + 'px';
 
-    // Tính toán lại kích thước dấu chấm dựa trên font-size đã tính toán
     var dotSizePx = currentFontSizePx * DOT_RATIO_TO_FONT_HEIGHT;
     redDotStatic.style.width = dotSizePx + 'px';
     redDotStatic.style.height = dotSizePx + 'px';
     blueDotMoving.style.width = dotSizePx + 'px';
     blueDotMoving.style.height = dotSizePx + 'px';
 
-    // Tính toán lại các hằng số chuyển động dựa trên font-size
     moveSpeedPx = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT;
     actualJumpHeightPx = currentFontSizePx * DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT;
     gravityPx = currentFontSizePx * GRAVITY_RATIO_TO_FONT_HEIGHT;
@@ -225,11 +196,16 @@ function gameLoop() {
     applyGravity();
     checkCollision();
     updateBlueDotPosition();
-    window.requestAnimationFrame(gameLoop);
+    animationFrameId = window.requestAnimationFrame(gameLoop);
 }
 
 function initializeGame() {
-    adjustFontSize(); // Tính toán font-size và kích thước chấm lần đầu
+    if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+
+    adjustFontSize();
 
     redDotRadiusPx = redDotStatic.offsetWidth / 2;
     blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
@@ -295,6 +271,11 @@ addEvent(window, 'resize', function() {
         }
         blueDotY = blueDotBaseY;
     } else {
+        if (blueDotX > rightBoundaryPx) {
+            blueDotX = rightBoundaryPx;
+        } else if (blueDotX < leftBoundaryPx) {
+            blueDotX = leftBoundaryPx;
+        }
     }
     updateBlueDotPosition();
 });
