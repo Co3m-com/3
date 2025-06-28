@@ -99,7 +99,7 @@ function adjustFontSize() {
     var newFontSize = TEST_FONT_SIZE * (desiredWidthPx / textContainerWidthAtTestSize);
 
     var MIN_FONT_SIZE = 20;
-    var MAX_FONT_SIZE = 300;
+    var MAX_FONT_SIZE = 3000;
     newFontSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, newFontSize));
 
     currentFontSizePx = newFontSize;
