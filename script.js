@@ -52,10 +52,13 @@ var blueDotX;
 var blueDotY;
 var blueDotDirection = 1;
 
+// Cần điều chỉnh các hằng số này để đạt được tốc độ/độ khó mong muốn
+// sau khi đã loại bỏ hệ số 60 cố định. Ví dụ: nếu trước đó 0.03 phù hợp
+// ở 60 FPS, bây giờ có thể cần khoảng 0.03 * 60 = 1.8 để đạt cùng tốc độ.
 var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
-var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.03;
+var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 1.8; // Ví dụ: đã điều chỉnh lên
 var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.277;
-var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.005;
+var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.3; // Ví dụ: đã điều chỉnh lên
 var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
 
 var moveSpeedPx;
@@ -76,7 +79,7 @@ var leftBoundaryPx;
 var rightBoundaryPx;
 
 var animationFrameId = null;
-var lastTimestamp = 0; // Thêm biến lastTimestamp
+var lastTimestamp = 0;
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -115,6 +118,7 @@ function adjustFontSize() {
     blueDotMoving.style.width = dotSizePx + 'px';
     blueDotMoving.style.height = dotSizePx + 'px';
 
+    // Các giá trị này bây giờ là pixel/giây (hoặc pixel/giây^2 cho trọng lực)
     moveSpeedPx = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT;
     actualJumpHeightPx = currentFontSizePx * DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT;
     gravityPx = currentFontSizePx * GRAVITY_RATIO_TO_FONT_HEIGHT;
@@ -126,10 +130,9 @@ function updateBlueDotPosition() {
     blueDotMoving.style.top = blueDotY + 'px';
 }
 
-// Chỉnh sửa: Hàm moveBlueDot nhận tham số deltaTime
 function moveBlueDot(deltaTime) {
-    // Nhân với deltaTime * 60 để chuẩn hóa tốc độ theo thời gian thực (60 FPS cơ sở)
-    blueDotX += moveSpeedPx * blueDotDirection * deltaTime * 60;
+    // Chỉ nhân với deltaTime
+    blueDotX += moveSpeedPx * blueDotDirection * deltaTime;
 
     if (blueDotX > rightBoundaryPx) {
         blueDotX = rightBoundaryPx;
@@ -144,16 +147,16 @@ function jump() {
     if (!isJumping) {
         isJumping = true;
         // Công thức tính vận tốc ban đầu cho cú nhảy dựa trên trọng lực và chiều cao mong muốn
+        // Vận tốc này cũng sẽ là pixel/giây
         jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
     }
 }
 
-// Chỉnh sửa: Hàm applyGravity nhận tham số deltaTime
 function applyGravity(deltaTime) {
     if (isJumping) {
-        // Nhân với deltaTime * 60 để chuẩn hóa tốc độ và gia tốc theo thời gian thực (60 FPS cơ sở)
-        blueDotY += jumpVelocity * deltaTime * 60;
-        jumpVelocity += gravityPx * deltaTime * 60;
+        // Chỉ nhân với deltaTime
+        blueDotY += jumpVelocity * deltaTime;
+        jumpVelocity += gravityPx * deltaTime;
 
         if (blueDotY >= blueDotBaseY) {
             blueDotY = blueDotBaseY;
@@ -184,7 +187,6 @@ function checkCollision() {
         blueDotX += Math.cos(angle) * overlap;
         blueDotY += Math.sin(angle) * overlap;
 
-        // Giữ nguyên logic đổi hướng khi va chạm nếu bạn muốn
         if (blueDotX + blueDotRadiusPx > redDotCenterXPx) {
             blueDotDirection = 1;
         } else {
@@ -199,16 +201,15 @@ function checkCollision() {
     }
 }
 
-// Chỉnh sửa: Hàm gameLoop nhận timestamp và tính deltaTime
 function gameLoop(timestamp) {
-    if (!lastTimestamp) { // Khởi tạo lastTimestamp nếu đây là khung hình đầu tiên
+    if (!lastTimestamp) {
         lastTimestamp = timestamp;
     }
     var deltaTime = (timestamp - lastTimestamp) / 1000; // Tính delta time theo giây
-    lastTimestamp = timestamp; // Cập nhật lastTimestamp cho khung hình tiếp theo
+    lastTimestamp = timestamp;
 
-    moveBlueDot(deltaTime); // Truyền deltaTime
-    applyGravity(deltaTime); // Truyền deltaTime
+    moveBlueDot(deltaTime);
+    applyGravity(deltaTime);
     checkCollision();
     updateBlueDotPosition();
     animationFrameId = window.requestAnimationFrame(gameLoop);
@@ -220,7 +221,7 @@ function initializeGame() {
         animationFrameId = null;
     }
 
-    lastTimestamp = 0; // Đặt lại lastTimestamp khi khởi tạo game để đảm bảo tính deltaTime đúng
+    lastTimestamp = 0;
 
     adjustFontSize();
 
@@ -242,7 +243,7 @@ function initializeGame() {
     blueDotY = blueDotBaseY;
 
     updateBlueDotPosition();
-    animationFrameId = window.requestAnimationFrame(gameLoop); // Bắt đầu gameLoop với requestAnimationFrame
+    animationFrameId = window.requestAnimationFrame(gameLoop);
 }
 
 addEvent(window, 'load', initializeGame);
