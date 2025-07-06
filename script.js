@@ -52,14 +52,20 @@ var blueDotX;
 var blueDotY;
 var blueDotDirection = 1;
 
-// Cần điều chỉnh các hằng số này để đạt được tốc độ/độ khó mong muốn
-// sau khi đã loại bỏ hệ số 60 cố định. Ví dụ: nếu trước đó 0.03 phù hợp
-// ở 60 FPS, bây giờ có thể cần khoảng 0.03 * 60 = 1.8 để đạt cùng tốc độ.
-var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
-var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 1.8; // Ví dụ: đã điều chỉnh lên
-var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.277;
-var GRAVITY_RATIO_TO_FONT_HEIGHT = 43; // Ví dụ: đã điều chỉnh lên
-var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
+// --- CÁC HẰNG SỐ CẦN ĐIỀU CHỈNH ĐỂ TINH CHỈNH ĐỘ KHÓ ---
+// HƯỚNG DẪN:
+// - Các giá trị này bây giờ ĐẠI DIỆN cho pixel / giây (hoặc pixel / giây^2 cho trọng lực).
+// - Bạn sẽ cần TĂNG chúng lên đáng kể so với các giá trị ban đầu của bạn
+//   (ví dụ: nếu 0.03 ban đầu cho cảm giác tốt ở 60FPS, thì bây giờ hãy thử 0.03 * 60 = 1.8)
+// - Thử nghiệm trên trình duyệt hiện đại cho đến khi đạt được cảm giác mong muốn.
+// - Khi đã tinh chỉnh được, cảm giác này sẽ đồng nhất trên mọi thiết bị.
+var DOT_RATIO_TO_FONT_HEIGHT = 0.3; // Tỷ lệ kích thước chấm so với chiều cao font
+var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 1.8; // Tốc độ di chuyển ngang (pixel/giây)
+var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.277; // Chiều cao nhảy mong muốn (pixel)
+var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.3; // Gia tốc trọng trường (pixel/giây^2)
+var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8; // Giới hạn di chuyển ngang
+
+// --- END CÁC HẰNG SỐ CẦN ĐIỀU CHỈNH ---
 
 var moveSpeedPx;
 var actualJumpHeightPx;
@@ -83,7 +89,7 @@ var lastTimestamp = 0;
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-    var desiredWidthVW = 18 * 5.6;
+    var desiredWidthVW = 18 * 5.6; // Giá trị này có vẻ hơi cố định, cân nhắc làm nó responsive hơn nếu cần
     var desiredWidthPx = (desiredWidthVW / 100) * viewportWidth;
 
     var TEST_FONT_SIZE = 100;
@@ -118,7 +124,7 @@ function adjustFontSize() {
     blueDotMoving.style.width = dotSizePx + 'px';
     blueDotMoving.style.height = dotSizePx + 'px';
 
-    // Các giá trị này bây giờ là pixel/giây (hoặc pixel/giây^2 cho trọng lực)
+    // Các giá trị này hiện tại là pixel/giây và pixel/giây^2
     moveSpeedPx = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT;
     actualJumpHeightPx = currentFontSizePx * DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT;
     gravityPx = currentFontSizePx * GRAVITY_RATIO_TO_FONT_HEIGHT;
@@ -131,7 +137,7 @@ function updateBlueDotPosition() {
 }
 
 function moveBlueDot(deltaTime) {
-    // Chỉ nhân với deltaTime
+    // Vận tốc nhân với deltaTime để đảm bảo chuyển động theo thời gian thực
     blueDotX += moveSpeedPx * blueDotDirection * deltaTime;
 
     if (blueDotX > rightBoundaryPx) {
@@ -147,15 +153,17 @@ function jump() {
     if (!isJumping) {
         isJumping = true;
         // Công thức tính vận tốc ban đầu cho cú nhảy dựa trên trọng lực và chiều cao mong muốn
-        // Vận tốc này cũng sẽ là pixel/giây
+        // Đây là vận tốc ban đầu cần thiết để đạt chiều cao 'actualJumpHeightPx' với trọng lực 'gravityPx'
+        // Vận tốc này cũng tính theo pixel/giây
         jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
     }
 }
 
 function applyGravity(deltaTime) {
     if (isJumping) {
-        // Chỉ nhân với deltaTime
+        // Cập nhật vị trí dựa trên vận tốc và deltaTime
         blueDotY += jumpVelocity * deltaTime;
+        // Cập nhật vận tốc dựa trên gia tốc trọng trường và deltaTime
         jumpVelocity += gravityPx * deltaTime;
 
         if (blueDotY >= blueDotBaseY) {
@@ -164,6 +172,7 @@ function applyGravity(deltaTime) {
             jumpVelocity = 0;
         }
     } else {
+        // Đảm bảo chấm xanh luôn nằm trên mặt đất khi không nhảy
         var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
         blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
         blueDotY = blueDotBaseY;
@@ -193,7 +202,7 @@ function checkCollision() {
             blueDotDirection = -1;
         }
 
-        redDotStatic.style.border = '2px solid red';
+        redDotStatic.style.border = '2px solid red'; // Hiệu ứng va chạm
         return true;
     } else {
         redDotStatic.style.border = 'none';
@@ -221,7 +230,7 @@ function initializeGame() {
         animationFrameId = null;
     }
 
-    lastTimestamp = 0;
+    lastTimestamp = 0; // Đặt lại lastTimestamp khi khởi tạo game
 
     adjustFontSize();
 
@@ -289,11 +298,13 @@ addEvent(window, 'resize', function() {
         }
         blueDotY = blueDotBaseY;
     } else {
+        // Khi đang nhảy, chỉ cập nhật giới hạn ngang nếu cần
         if (blueDotX > rightBoundaryPx) {
             blueDotX = rightBoundaryPx;
         } else if (blueDotX < leftBoundaryPx) {
             blueDotX = leftBoundaryPx;
         }
+        // blueDotY không thay đổi nếu đang nhảy để tránh giật hình
     }
     updateBlueDotPosition();
 });
