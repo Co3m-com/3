@@ -1,20 +1,19 @@
 (function() {
     var lastTime = 0;
-    var vendors = ['webkit', 'moz', 'ms'];
+    var vendors = ['webkit', 'moz'];
     var x;
     for(x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-        window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+        window.requestAnimationFrame = window['webkitRequestAnimationFrame'];
         window.cancelAnimationFrame =
-          window[vendors[x] + 'CancelAnimationFrame'] || window[vendors[x] + 'CancelRequestAnimationFrame'];
+          window['webkitCancelAnimationFrame'] || window['webkitCancelRequestAnimationFrame'];
     }
 
     if (!window.requestAnimationFrame) {
-        window.requestAnimationFrame = function(callback) {
+        window.requestAnimationFrame = function(callback, element) {
             var currTime = new Date().getTime();
             var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-            var id = window.setTimeout(function() {
-                callback(currTime + timeToCall);
-            }, timeToCall);
+            var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+              timeToCall);
             lastTime = currTime + timeToCall;
             return id;
         };
@@ -28,9 +27,6 @@
 }());
 
 function addEvent(element, eventName, callback) {
-    if (!element) {
-        return;
-    }
     if (element.addEventListener) {
         element.addEventListener(eventName, callback, false);
     }
@@ -45,85 +41,94 @@ function addEvent(element, eventName, callback) {
     }
 }
 
-const textContainer = document.getElementById('co3m-text')?.parentNode;
-const co3mText = document.getElementById('co3m-text');
-const comText = document.getElementById('com-text');
-const redDotStatic = document.getElementById('red-dot-static-id');
-const blueDotMoving = document.getElementById('blue-dot-moving-id');
-const fullscreenOverlay = document.getElementsByClassName('fullscreen-overlay')[0];
+var textContainer = document.getElementById('co3m-text').parentNode;
+var co3mText = document.getElementById('co3m-text');
+var comText = document.getElementById('com-text');
+var redDotStatic = document.getElementById('red-dot-static-id');
+var blueDotMoving = document.getElementById('blue-dot-moving-id');
+var fullscreenOverlay = document.getElementsByClassName('fullscreen-overlay')[0];
 
-if (!textContainer || !co3mText || !comText || !redDotStatic || !blueDotMoving || !fullscreenOverlay) {
-    console.error("Error: Missing one or more essential DOM elements. Check IDs/Classes.");
-    throw new Error("Game initialization failed: Missing essential DOM elements.");
-}
+var blueDotX;
+var blueDotY;
+var blueDotDirection = 1;
 
-let blueDotX;
-let blueDotY;
-let blueDotDirection = 1;
+// --- GAME PARAMETERS TO TUNE DIFFICULTY AND GAME FEEL ---
+// THESE VALUES REPRESENT PIXELS / MILLISECONDS (or PIXELS / MILLISECONDS^2 for gravity).
+// ADJUST THEM ON YOUR MODERN DEVICE UNTIL YOU ARE SATISFIED.
+// ONCE TUNED, THE EXPERIENCE WILL BE CONSISTENT ACROSS ALL DEVICES.
 
-const DOT_RATIO_TO_FONT_HEIGHT = 0.3;
+// Object sizes
+var DOT_RATIO_TO_FONT_HEIGHT = 0.3; // Dot size ratio to font height
 
-const MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.002;
-const MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
+// Movement parameters
+var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.002; // Blue dot horizontal movement speed (pixels/millisecond)
+var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8; // Blue dot horizontal movement limit relative to red dot center
 
-const DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.27;
-const GRAVITY_RATIO_TO_FONT_HEIGHT = 0.00003;
+// Jump and gravity parameters
+var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.27; // Desired blue dot jump height (pixels)
+var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.00003; // Gravity acceleration on blue dot (pixels/millisecond^2)
 
-const FIXED_UPDATE_INTERVAL_MS = 20;
+// GAME LOOP BASIC SETTINGS (DO NOT CHANGE WITHOUT EXPERIENCE)
+var FIXED_UPDATE_INTERVAL_MS = 20; // Milliseconds for each physics update step. (20ms = 50 updates/second)
 
-const TEST_FONT_SIZE = 100;
-const MIN_FONT_SIZE = 20;
-const MAX_FONT_SIZE = 3000;
+// --- END OF TUNABLE PARAMETERS ---
 
-let moveSpeedPx;
-let actualJumpHeightPx;
-let gravityPx;
-let movementLimitPx;
-let currentFontSizePx;
+var moveSpeedPx;
+var actualJumpHeightPx;
+var gravityPx;
+var movementLimitPx;
+var currentFontSizePx;
 
-let isJumping = false;
-let jumpVelocity = 0;
-let blueDotBaseY;
+var isJumping = false;
+var jumpVelocity = 0;
+var blueDotBaseY;
 
-let redDotRadiusPx;
-let blueDotRadiusPx;
+var redDotRadiusPx;
+var blueDotRadiusPx;
 
-let redDotCenterXPx;
-let leftBoundaryPx;
-let rightBoundaryPx;
+var redDotCenterXPx;
+var leftBoundaryPx;
+var rightBoundaryPx;
 
-let animationFrameId = null;
-let lastTimestamp = 0;
-let accumulatedTime = 0;
+var animationFrameId = null;
+var lastTimestamp = 0;
+var accumulatedTime = 0;
 
-let prevBlueDotX;
-let prevBlueDotY;
+var prevBlueDotX;
+var prevBlueDotY;
 
 function adjustFontSize() {
-    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-    const desiredWidthVW = 18 * 5.6;
-    const desiredWidthPx = (desiredWidthVW / 100) * viewportWidth;
+    var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    var desiredWidthVW = 18 * 5.6;
+    var desiredWidthPx = (desiredWidthVW / 100) * viewportWidth;
+
+    var TEST_FONT_SIZE = 100;
 
     co3mText.style.fontSize = TEST_FONT_SIZE + 'px';
     comText.style.fontSize = TEST_FONT_SIZE + 'px';
 
-    const testDotSizePx = TEST_FONT_SIZE * DOT_RATIO_TO_FONT_HEIGHT;
+    var testDotSizePx = TEST_FONT_SIZE * DOT_RATIO_TO_FONT_HEIGHT;
     redDotStatic.style.width = testDotSizePx + 'px';
     redDotStatic.style.height = testDotSizePx + 'px';
 
-    let textContainerWidthAtTestSize = textContainer.offsetWidth;
+    var textContainerWidthAtTestSize = textContainer.offsetWidth;
+
     if (textContainerWidthAtTestSize === 0) {
-        console.warn("textContainer.offsetWidth is 0. Using 1 to prevent division by zero.");
-        textContainerWidthAtTestSize = 1;
+         textContainerWidthAtTestSize = 1;
     }
 
-    let newFontSize = TEST_FONT_SIZE * (desiredWidthPx / textContainerWidthAtTestSize);
-    currentFontSizePx = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, newFontSize));
+    var newFontSize = TEST_FONT_SIZE * (desiredWidthPx / textContainerWidthAtTestSize);
+
+    var MIN_FONT_SIZE = 20;
+    var MAX_FONT_SIZE = 3000;
+    newFontSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, newFontSize));
+
+    currentFontSizePx = newFontSize;
 
     co3mText.style.fontSize = currentFontSizePx + 'px';
     comText.style.fontSize = currentFontSizePx + 'px';
 
-    const dotSizePx = currentFontSizePx * DOT_RATIO_TO_FONT_HEIGHT;
+    var dotSizePx = currentFontSizePx * DOT_RATIO_TO_FONT_HEIGHT;
     redDotStatic.style.width = dotSizePx + 'px';
     redDotStatic.style.height = dotSizePx + 'px';
     blueDotMoving.style.width = dotSizePx + 'px';
@@ -133,24 +138,11 @@ function adjustFontSize() {
     actualJumpHeightPx = currentFontSizePx * DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT;
     gravityPx = currentFontSizePx * GRAVITY_RATIO_TO_FONT_HEIGHT;
     movementLimitPx = currentFontSizePx * MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT;
-
-    redDotRadiusPx = redDotStatic.offsetWidth / 2;
-    blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
-
-    const redDotRect = redDotStatic.getBoundingClientRect();
-    const textContainerRect = textContainer.getBoundingClientRect();
-
-    redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
-
-    leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
-    rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
-
-    blueDotBaseY = redDotStatic.offsetTop + redDotStatic.offsetHeight - blueDotMoving.offsetHeight;
 }
 
 function renderBlueDot(alpha) {
-    const interpolatedX = prevBlueDotX + (blueDotX - prevBlueDotX) * alpha;
-    const interpolatedY = prevBlueDotY + (blueDotY - prevBlueDotY) * alpha;
+    var interpolatedX = prevBlueDotX + (blueDotX - prevBlueDotX) * alpha;
+    var interpolatedY = prevBlueDotY + (blueDotY - prevBlueDotY) * alpha;
 
     blueDotMoving.style.left = interpolatedX + 'px';
     blueDotMoving.style.top = interpolatedY + 'px';
@@ -186,26 +178,28 @@ function applyGravityFixed(fixedDeltaTime) {
             jumpVelocity = 0;
         }
     } else {
+        var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
+        blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
         blueDotY = blueDotBaseY;
     }
 }
 
 function checkCollision() {
-    const redCenterX = redDotStatic.offsetLeft + redDotRadiusPx;
-    const redCenterY = redDotStatic.offsetTop + redDotRadiusPx;
+    var redCenterX = redDotStatic.offsetLeft + (redDotStatic.offsetWidth / 2);
+    var redCenterY = redDotStatic.offsetTop + (redDotStatic.offsetHeight / 2);
 
-    const blueCenterX = blueDotX + blueDotRadiusPx;
-    const blueCenterY = blueDotY + blueDotRadiusPx;
+    var blueCenterX = blueDotX + blueDotRadiusPx;
+    var blueCenterY = blueDotY + blueDotRadiusPx;
 
-    const dx = blueCenterX - redCenterX;
-    const dy = blueCenterY - redCenterY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+    var dx = blueCenterX - redCenterX;
+    var dy = blueCenterY - redCenterY;
+    var distance = Math.sqrt(dx * dx + dy * dy);
 
-    const minDistance = redDotRadiusPx + blueDotRadiusPx;
+    var minDistance = redDotRadiusPx + blueDotRadiusPx;
 
     if (distance < minDistance) {
-        const overlap = minDistance - distance;
-        const angle = Math.atan2(dy, dx);
+        var overlap = minDistance - distance;
+        var angle = Math.atan2(dy, dx);
 
         blueDotX += Math.cos(angle) * overlap;
         blueDotY += Math.sin(angle) * overlap;
@@ -228,10 +222,10 @@ function gameLoop(timestamp) {
     if (!lastTimestamp) {
         lastTimestamp = timestamp;
     }
-    let frameDeltaTime = timestamp - lastTimestamp;
+    var frameDeltaTime = timestamp - lastTimestamp;
     lastTimestamp = timestamp;
 
-    const MAX_FRAME_DELTA = FIXED_UPDATE_INTERVAL_MS * 5;
+    var MAX_FRAME_DELTA = FIXED_UPDATE_INTERVAL_MS * 5;
     if (frameDeltaTime > MAX_FRAME_DELTA) {
         frameDeltaTime = MAX_FRAME_DELTA;
     }
@@ -248,7 +242,7 @@ function gameLoop(timestamp) {
         accumulatedTime -= FIXED_UPDATE_INTERVAL_MS;
     }
 
-    const alpha = accumulatedTime / FIXED_UPDATE_INTERVAL_MS;
+    var alpha = accumulatedTime / FIXED_UPDATE_INTERVAL_MS;
     renderBlueDot(alpha);
 
     animationFrameId = window.requestAnimationFrame(gameLoop);
@@ -262,12 +256,24 @@ function initializeGame() {
 
     lastTimestamp = 0;
     accumulatedTime = 0;
-    isJumping = false;
-    jumpVelocity = 0;
 
     adjustFontSize();
 
-    blueDotX = redDotCenterXPx - blueDotRadiusPx;
+    redDotRadiusPx = redDotStatic.offsetWidth / 2;
+    blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
+
+    var redDotRect = redDotStatic.getBoundingClientRect();
+    var textContainerRect = textContainer.getBoundingClientRect();
+
+    redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
+
+    leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
+    rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
+
+    var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
+    blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
+
+    blueDotX = redDotCenterXPx + redDotRadiusPx;
     blueDotY = blueDotBaseY;
 
     prevBlueDotX = blueDotX;
@@ -300,16 +306,33 @@ addEvent(window, 'contextmenu', function(event) {
 addEvent(window, 'resize', function() {
     adjustFontSize();
 
-    if (blueDotX > rightBoundaryPx) {
-        blueDotX = rightBoundaryPx;
-    } else if (blueDotX < leftBoundaryPx) {
-        blueDotX = leftBoundaryPx;
-    }
+    redDotRadiusPx = redDotStatic.offsetWidth / 2;
+    blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
+
+    var redDotRect = redDotStatic.getBoundingClientRect();
+    var textContainerRect = textContainer.getBoundingClientRect();
+    redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
+
+    leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
+    rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
+
+    var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
+    blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
 
     if (!isJumping) {
+        if (blueDotX > rightBoundaryPx) {
+            blueDotX = rightBoundaryPx;
+        } else if (blueDotX < leftBoundaryPx) {
+            blueDotX = leftBoundaryPx;
+        }
         blueDotY = blueDotBaseY;
+    } else {
+        if (blueDotX > rightBoundaryPx) {
+            blueDotX = rightBoundaryPx;
+        } else if (blueDotX < leftBoundaryPx) {
+            blueDotX = leftBoundaryPx;
+        }
     }
-
     prevBlueDotX = blueDotX;
     prevBlueDotY = blueDotY;
 
