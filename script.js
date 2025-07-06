@@ -62,7 +62,7 @@ var blueDotDirection = 1;
 var DOT_RATIO_TO_FONT_HEIGHT = 0.3; // Tỷ lệ kích thước chấm so với chiều cao font
 var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 1.8; // Tốc độ di chuyển ngang (pixel/giây)
 var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.277; // Chiều cao nhảy mong muốn (pixel)
-var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.3; // Gia tốc trọng trường (pixel/giây^2)
+var GRAVITY_RATIO_TO_FONT_HEIGHT = 40; // Gia tốc trọng trường (pixel/giây^2)
 var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8; // Giới hạn di chuyển ngang
 
 // --- END CÁC HẰNG SỐ CẦN ĐIỀU CHỈNH ---
