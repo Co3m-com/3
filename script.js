@@ -69,7 +69,7 @@ var GRAVITY_RATIO_TO_FONT_HEIGHT = 33; // Gia tốc trọng trường (pixel/gi�
 
 // TỐC ĐỘ DI CHUYỂN NGANG: Tinh chỉnh chính xác (sử dụng Delta Time tính bằng MILI GIÂY)
 // Giảm giá trị này để chấm xanh di chuyển CHẬM HƠN
-var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.005; // Tốc độ di chuyển ngang (pixel/mili giây)
+var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.001; // Tốc độ di chuyển ngang (pixel/mili giây)
 var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8; // Giới hạn di chuyển ngang
 
 // --- KẾT THÚC CÁC THÔNG SỐ CẦN ĐIỀU CHỈNH ---
