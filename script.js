@@ -253,7 +253,7 @@ animationFrameId = window.requestAnimationFrame(gameLoop);
 function updateScoreDisplay() {
 if (score > 0) {
 scoreDisplay.textContent = score;
-scoreDisplay.style.opacity = '0.7'; // Hoặc 1 nếu bạn muốn nó hiện rõ
+scoreDisplay.style.opacity = '0'; // Hoặc 1 nếu bạn muốn nó hiện rõ
 } else {
 scoreDisplay.style.opacity = '0';
 scoreDisplay.textContent = ''; // Xóa nội dung khi ẩn
