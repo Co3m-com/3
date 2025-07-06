@@ -30,9 +30,7 @@ function addEvent(element, eventName, callback) {
     if (element.addEventListener) {
         element.addEventListener(eventName, callback, false);
     }
-    // No else if (element.attachEvent) block needed if you're targeting modern browsers
-    // If you need IE8 support, keep the attachEvent block.
-    else if (element.attachEvent) { // Keeping for consistency with original code
+    else if (element.attachEvent) {
         element.attachEvent('on' + eventName, function(e) {
             e = e || window.event;
             e.target = e.target || e.srcElement;
@@ -130,7 +128,8 @@ function updateBlueDotPosition() {
 
 // Chỉnh sửa: Hàm moveBlueDot nhận tham số deltaTime
 function moveBlueDot(deltaTime) {
-    blueDotX += moveSpeedPx * blueDotDirection * deltaTime * 60; // Nhân với deltaTime * 60
+    // Nhân với deltaTime * 60 để chuẩn hóa tốc độ theo thời gian thực (60 FPS cơ sở)
+    blueDotX += moveSpeedPx * blueDotDirection * deltaTime * 60;
 
     if (blueDotX > rightBoundaryPx) {
         blueDotX = rightBoundaryPx;
@@ -152,8 +151,9 @@ function jump() {
 // Chỉnh sửa: Hàm applyGravity nhận tham số deltaTime
 function applyGravity(deltaTime) {
     if (isJumping) {
-        blueDotY += jumpVelocity * deltaTime * 60; // Nhân với deltaTime * 60
-        jumpVelocity += gravityPx * deltaTime * 60; // Nhân với deltaTime * 60
+        // Nhân với deltaTime * 60 để chuẩn hóa tốc độ và gia tốc theo thời gian thực (60 FPS cơ sở)
+        blueDotY += jumpVelocity * deltaTime * 60;
+        jumpVelocity += gravityPx * deltaTime * 60;
 
         if (blueDotY >= blueDotBaseY) {
             blueDotY = blueDotBaseY;
@@ -220,7 +220,7 @@ function initializeGame() {
         animationFrameId = null;
     }
 
-    lastTimestamp = 0; // Đặt lại lastTimestamp khi khởi tạo game
+    lastTimestamp = 0; // Đặt lại lastTimestamp khi khởi tạo game để đảm bảo tính deltaTime đúng
 
     adjustFontSize();
 
