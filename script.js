@@ -29,7 +29,10 @@
 function addEvent(element, eventName, callback) {
     if (element.addEventListener) {
         element.addEventListener(eventName, callback, false);
-    } else if (element.attachEvent) {
+    }
+    // No else if (element.attachEvent) block needed if you're targeting modern browsers
+    // If you need IE8 support, keep the attachEvent block.
+    else if (element.attachEvent) { // Keeping for consistency with original code
         element.attachEvent('on' + eventName, function(e) {
             e = e || window.event;
             e.target = e.target || e.srcElement;
@@ -75,6 +78,7 @@ var leftBoundaryPx;
 var rightBoundaryPx;
 
 var animationFrameId = null;
+var lastTimestamp = 0; // Thêm biến lastTimestamp
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -124,8 +128,9 @@ function updateBlueDotPosition() {
     blueDotMoving.style.top = blueDotY + 'px';
 }
 
-function moveBlueDot() {
-    blueDotX += moveSpeedPx * blueDotDirection;
+// Chỉnh sửa: Hàm moveBlueDot nhận tham số deltaTime
+function moveBlueDot(deltaTime) {
+    blueDotX += moveSpeedPx * blueDotDirection * deltaTime * 60; // Nhân với deltaTime * 60
 
     if (blueDotX > rightBoundaryPx) {
         blueDotX = rightBoundaryPx;
@@ -139,14 +144,16 @@ function moveBlueDot() {
 function jump() {
     if (!isJumping) {
         isJumping = true;
+        // Công thức tính vận tốc ban đầu cho cú nhảy dựa trên trọng lực và chiều cao mong muốn
         jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
     }
 }
 
-function applyGravity() {
+// Chỉnh sửa: Hàm applyGravity nhận tham số deltaTime
+function applyGravity(deltaTime) {
     if (isJumping) {
-        blueDotY += jumpVelocity;
-        jumpVelocity += gravityPx;
+        blueDotY += jumpVelocity * deltaTime * 60; // Nhân với deltaTime * 60
+        jumpVelocity += gravityPx * deltaTime * 60; // Nhân với deltaTime * 60
 
         if (blueDotY >= blueDotBaseY) {
             blueDotY = blueDotBaseY;
@@ -177,6 +184,7 @@ function checkCollision() {
         blueDotX += Math.cos(angle) * overlap;
         blueDotY += Math.sin(angle) * overlap;
 
+        // Giữ nguyên logic đổi hướng khi va chạm nếu bạn muốn
         if (blueDotX + blueDotRadiusPx > redDotCenterXPx) {
             blueDotDirection = 1;
         } else {
@@ -191,9 +199,16 @@ function checkCollision() {
     }
 }
 
-function gameLoop() {
-    moveBlueDot();
-    applyGravity();
+// Chỉnh sửa: Hàm gameLoop nhận timestamp và tính deltaTime
+function gameLoop(timestamp) {
+    if (!lastTimestamp) { // Khởi tạo lastTimestamp nếu đây là khung hình đầu tiên
+        lastTimestamp = timestamp;
+    }
+    var deltaTime = (timestamp - lastTimestamp) / 1000; // Tính delta time theo giây
+    lastTimestamp = timestamp; // Cập nhật lastTimestamp cho khung hình tiếp theo
+
+    moveBlueDot(deltaTime); // Truyền deltaTime
+    applyGravity(deltaTime); // Truyền deltaTime
     checkCollision();
     updateBlueDotPosition();
     animationFrameId = window.requestAnimationFrame(gameLoop);
@@ -204,6 +219,8 @@ function initializeGame() {
         window.cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
+
+    lastTimestamp = 0; // Đặt lại lastTimestamp khi khởi tạo game
 
     adjustFontSize();
 
@@ -225,7 +242,7 @@ function initializeGame() {
     blueDotY = blueDotBaseY;
 
     updateBlueDotPosition();
-    gameLoop();
+    animationFrameId = window.requestAnimationFrame(gameLoop); // Bắt đầu gameLoop với requestAnimationFrame
 }
 
 addEvent(window, 'load', initializeGame);
