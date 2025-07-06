@@ -58,7 +58,7 @@ var blueDotDirection = 1;
 var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
 var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 1.8; // Ví dụ: đã điều chỉnh lên
 var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.277;
-var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.3; // Ví dụ: đã điều chỉnh lên
+var GRAVITY_RATIO_TO_FONT_HEIGHT = 43; // Ví dụ: đã điều chỉnh lên
 var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
 
 var moveSpeedPx;
