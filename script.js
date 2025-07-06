@@ -52,26 +52,13 @@ var blueDotX;
 var blueDotY;
 var blueDotDirection = 1;
 
-// --- GAME PARAMETERS TO TUNE DIFFICULTY AND GAME FEEL ---
-// THESE VALUES REPRESENT PIXELS / MILLISECONDS (or PIXELS / MILLISECONDS^2 for gravity).
-// ADJUST THEM ON YOUR MODERN DEVICE UNTIL YOU ARE SATISFIED.
-// ONCE TUNED, THE EXPERIENCE WILL BE CONSISTENT ACROSS ALL DEVICES.
+var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
+var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.002;
+var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
+var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.27;
+var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.00003;
 
-// Object sizes
-var DOT_RATIO_TO_FONT_HEIGHT = 0.3; // Dot size ratio to font height
-
-// Movement parameters
-var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.002; // Blue dot horizontal movement speed (pixels/millisecond)
-var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8; // Blue dot horizontal movement limit relative to red dot center
-
-// Jump and gravity parameters
-var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.27; // Desired blue dot jump height (pixels)
-var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.00003; // Gravity acceleration on blue dot (pixels/millisecond^2)
-
-// GAME LOOP BASIC SETTINGS (DO NOT CHANGE WITHOUT EXPERIENCE)
-var FIXED_UPDATE_INTERVAL_MS = 20; // Milliseconds for each physics update step. (20ms = 50 updates/second)
-
-// --- END OF TUNABLE PARAMETERS ---
+var FIXED_UPDATE_INTERVAL_MS = 10;
 
 var moveSpeedPx;
 var actualJumpHeightPx;
