@@ -65,8 +65,8 @@ var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.003; // Tốc độ di chuyển ngang c�
 var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8; // Giới hạn di chuyển ngang của chấm xanh so với tâm chấm đỏ
 
 // Các thông số nhảy và trọng lực
-var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.03; // Chiều cao nhảy mong muốn của chấm xanh (pixel)
-var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.03; // Gia tốc trọng trường tác động lên chấm xanh (pixel/mili giây^2)
+var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.0003; // Chiều cao nhảy mong muốn của chấm xanh (pixel)
+var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.0003; // Gia tốc trọng trường tác động lên chấm xanh (pixel/mili giây^2)
 
 // CÀI ĐẶT CƠ BẢN CỦA GAME LOOP (KHÔNG NÊN THAY ĐỔI NẾU KHÔNG CÓ KINH NGHIỆM)
 var FIXED_UPDATE_INTERVAL_MS = 20; // Mili giây cho mỗi bước cập nhật vật lý. (20ms = 50 cập nhật/giây)
