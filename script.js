@@ -2,7 +2,7 @@
     var lastTime = 0;
     var vendors = ['webkit', 'moz'];
     var x;
-    for(x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+    for (x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
         window.requestAnimationFrame = window['webkitRequestAnimationFrame'];
         window.cancelAnimationFrame =
             window['webkitCancelAnimationFrame'] || window['webkitCancelRequestAnimationFrame'];
@@ -12,7 +12,9 @@
         window.requestAnimationFrame = function(callback, element) {
             var currTime = new Date().getTime();
             var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-            var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+            var id = window.setTimeout(function() {
+                callback(currTime + timeToCall);
+            },
                 timeToCall);
             lastTime = currTime + timeToCall;
             return id;
@@ -29,13 +31,16 @@
 function addEvent(element, eventName, callback) {
     if (element.addEventListener) {
         element.addEventListener(eventName, callback, false);
-    }
-    else if (element.attachEvent) {
+    } else if (element.attachEvent) {
         element.attachEvent('on' + eventName, function(e) {
             e = e || window.event;
             e.target = e.target || e.srcElement;
-            e.preventDefault = e.preventDefault || function() { e.returnValue = false; };
-            e.stopPropagation = e.stopPropagation || function() { e.cancelBubble = true; };
+            e.preventDefault = e.preventDefault || function() {
+                e.returnValue = false;
+            };
+            e.stopPropagation = e.stopPropagation || function() {
+                e.cancelBubble = true;
+            };
             callback.call(element, e);
         });
     }
@@ -84,17 +89,17 @@ var accumulatedTime = 0;
 var prevBlueDotX;
 var prevBlueDotY;
 
-// --- Thêm biến cho "thời điểm vàng" ---
-// Định nghĩa thời điểm vàng: 90ms đến 110ms
-// Chúng ta sẽ tính khoảng cách pixel tương ứng.
-// Giả sử điểm tham chiếu 0ms là khi blueDotMoving chạm mép trái của vùng di chuyển (leftBoundaryPx).
-var GOLDEN_JUMP_START_MS = 90; // Thời gian bắt đầu vùng vàng tính từ điểm tham chiếu
-var GOLDEN_JUMP_END_MS = 110;   // Thời gian kết thúc vùng vàng tính từ điểm tham chiếu
+// --- THAY ĐỔI BIẾN THỜI GIAN NHẢY ---
+var JUMP_GOLDEN_TIMING_START_MS = 100; // Bắt đầu thời điểm vàng (sớm hơn tâm)
+var JUMP_GOLDEN_TIMING_END_MS = 120;   // Kết thúc thời điểm vàng (sớm hơn tâm)
+// Lưu ý: Chúng ta sẽ tính toán dựa trên khoảng cách từ tâm,
+// nên giá trị này thực sự là khoảng cách từ tâm về phía trước.
+// Nếu muốn 100ms TRƯỚC TÂM và 120ms SAU TÂM, logic sẽ khác.
+// Hiện tại tôi hiểu là bạn muốn vùng từ 100ms đến 120ms (tính từ tâm) để nhảy.
 
-var goldenJumpStartX_Px; // Khoảng cách pixel tương ứng với GOLDEN_JUMP_START_MS từ leftBoundaryPx
-var goldenJumpEndX_Px;   // Khoảng cách pixel tương ứng với GOLDEN_JUMP_END_MS từ leftBoundaryPx
-// --- Kết thúc thêm biến ---
-
+// Nếu bạn muốn 100ms trước tâm, và 120ms sau tâm, vui lòng cho tôi biết.
+// Hiện tại, tôi đang giả định thời điểm vàng là khi blue dot còn cách tâm 100-120ms (trên đường di chuyển tới tâm).
+// --- KẾT THÚC THAY ĐỔI ---
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -161,8 +166,60 @@ function moveBlueDotFixed(fixedDeltaTime) {
 
 function jump() {
     if (!isJumping) {
-        isJumping = true;
-        jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
+        // Tính toán vị trí tâm của blue dot và red dot
+        var blueDotCenter = blueDotX + blueDotRadiusPx;
+        var redDotCenter = redDotStatic.offsetLeft + redDotRadiusPx;
+
+        // Tính toán khoảng cách (theo chiều ngang) từ tâm blue dot đến tâm red dot
+        var distanceToRedDotCenter = redDotCenter - blueDotCenter; // Khoảng cách dương nếu blue dot ở bên trái red dot
+
+        // Chuyển đổi khoảng cách pixel sang thời gian (ms)
+        // moveSpeedPx là pixels/FIXED_UPDATE_INTERVAL_MS.
+        // Tức là, moveSpeedPx / FIXED_UPDATE_INTERVAL_MS là pixels/ms
+        var speedPxPerMs = moveSpeedPx / FIXED_UPDATE_INTERVAL_MS;
+
+        // Thời gian để blue dot đến tâm red dot từ vị trí hiện tại
+        // Đảm bảo speedPxPerMs không phải là 0 để tránh chia cho 0
+        if (speedPxPerMs === 0) {
+            console.log("Error: speedPxPerMs is zero, cannot calculate jump timing.");
+            redDotStatic.style.border = '2px solid black'; // Báo lỗi hoặc trạng thái không thể nhảy
+            return;
+        }
+
+        var timeToRedDotCenterMs = distanceToRedDotCenter / speedPxPerMs;
+
+        // Kiểm tra xem thời gian còn lại để đến tâm red dot có nằm trong "thời điểm vàng" không
+        // Giả sử blueDotDirection = 1 (đi từ trái sang phải)
+        var isWithinGoldenTiming = false;
+
+        // Nếu blue dot đang di chuyển về phía red dot (từ trái sang phải hoặc từ phải sang trái)
+        // và đang trong khoảng thời gian vàng để bấm nhảy
+        if (blueDotDirection === 1) { // Blue dot đang di chuyển từ trái sang phải
+            // Thời điểm vàng là khi blue dot còn cách tâm từ 100ms đến 120ms về phía trái của tâm red dot.
+            if (timeToRedDotCenterMs >= JUMP_GOLDEN_TIMING_START_MS && timeToRedDotCenterMs <= JUMP_GOLDEN_TIMING_END_MS) {
+                isWithinGoldenTiming = true;
+            }
+        } else { // Blue dot đang di chuyển từ phải sang trái
+            // Thời điểm vàng là khi blue dot còn cách tâm từ -120ms đến -100ms (tức là 120ms đến 100ms về phía phải của tâm red dot).
+            if (timeToRedDotCenterMs <= -JUMP_GOLDEN_TIMING_START_MS && timeToRedDotCenterMs >= -JUMP_GOLDEN_TIMING_END_MS) {
+                isWithinGoldenTiming = true;
+            }
+        }
+
+
+        if (isWithinGoldenTiming) {
+            isJumping = true;
+            jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
+            redDotStatic.style.border = '2px solid gold'; // Phản hồi trực quan cho cú nhảy thành công
+            console.log("Golden Jump! Time to center:", timeToRedDotCenterMs.toFixed(2), "ms");
+        } else {
+            console.log("Jump attempt outside golden timing. No jump. Time to center:", timeToRedDotCenterMs.toFixed(2), "ms");
+            redDotStatic.style.border = '2px solid red'; // Phản hồi trực quan cho cú nhảy thất bại
+            // Reset border sau một thời gian ngắn để người chơi biết mình đã thất bại
+            setTimeout(() => {
+                redDotStatic.style.border = 'none';
+            }, 300);
+        }
     }
 }
 
@@ -175,6 +232,7 @@ function applyGravityFixed(fixedDeltaTime) {
             blueDotY = blueDotBaseY;
             isJumping = false;
             jumpVelocity = 0;
+            redDotStatic.style.border = 'none'; // Đặt lại viền sau khi hạ cánh
         }
     } else {
         var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
@@ -184,6 +242,7 @@ function applyGravityFixed(fixedDeltaTime) {
 }
 
 function checkCollision() {
+    // Logic va chạm vật lý vẫn giữ nguyên, nhưng logic nhảy được quyết định ở hàm `jump()`
     var redCenterX = redDotStatic.offsetLeft + (redDotStatic.offsetWidth / 2);
     var redCenterY = redDotStatic.offsetTop + (redDotStatic.offsetHeight / 2);
 
@@ -196,8 +255,8 @@ function checkCollision() {
 
     var minDistance = redDotRadiusPx + blueDotRadiusPx;
 
-    // Kiểm tra va chạm vật lý
     if (distance < minDistance) {
+        // Đây là va chạm vật lý, không nhất thiết là cú nhảy thất bại nếu đã nhảy thành công
         var overlap = minDistance - distance;
         var angle = Math.atan2(dy, dx);
 
@@ -209,27 +268,9 @@ function checkCollision() {
         } else {
             blueDotDirection = -1;
         }
-
-        redDotStatic.style.border = '2px solid red'; // Hiển thị va chạm
         return true;
-    } else {
-        redDotStatic.style.border = 'none'; // Không có va chạm vật lý
-
-        // --- Logic kiểm tra "thời điểm vàng" ---
-        // Chỉ kiểm tra khi chấm xanh đang di chuyển và không va chạm vật lý
-        if (!isJumping) {
-            // Tính toán vị trí tương đối của tâm chấm xanh so với điểm tham chiếu
-            var blueDotRelativeX = blueDotX - leftBoundaryPx; // Vị trí từ biên trái
-
-            // Kiểm tra nếu chấm xanh đang ở trong vùng "thời điểm vàng"
-            if (blueDotRelativeX >= goldenJumpStartX_Px && blueDotRelativeX <= goldenJumpEndX_Px) {
-                redDotStatic.style.border = '2px solid gold'; // Đổi màu viền thành vàng
-            }
-        }
-        // --- Kết thúc logic "thời điểm vàng" ---
-        
-        return false;
     }
+    return false;
 }
 
 function gameLoop(timestamp) {
@@ -252,7 +293,7 @@ function gameLoop(timestamp) {
     while (accumulatedTime >= FIXED_UPDATE_INTERVAL_MS) {
         moveBlueDotFixed(FIXED_UPDATE_INTERVAL_MS);
         applyGravityFixed(FIXED_UPDATE_INTERVAL_MS);
-        checkCollision(); // Gọi checkCollision sau khi cập nhật vị trí
+        checkCollision();
         accumulatedTime -= FIXED_UPDATE_INTERVAL_MS;
     }
 
@@ -287,17 +328,11 @@ function initializeGame() {
     var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
     blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
 
-    blueDotX = redDotCenterXPx + redDotRadiusPx; // Bắt đầu từ bên phải của chấm đỏ
+    blueDotX = redDotCenterXPx + redDotRadiusPx;
     blueDotY = blueDotBaseY;
 
     prevBlueDotX = blueDotX;
     prevBlueDotY = blueDotY;
-
-    // --- Tính toán khoảng cách pixel cho "thời điểm vàng" ---
-    var pixelPerMs = moveSpeedPx / FIXED_UPDATE_INTERVAL_MS;
-    goldenJumpStartX_Px = pixelPerMs * GOLDEN_JUMP_START_MS;
-    goldenJumpEndX_Px = pixelPerMs * GOLDEN_JUMP_END_MS;
-    // --- Kết thúc tính toán ---
 
     renderBlueDot(1);
 
@@ -338,12 +373,6 @@ addEvent(window, 'resize', function() {
 
     var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
     blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
-
-    // --- Cập nhật lại khoảng cách pixel cho "thời điểm vàng" khi thay đổi kích thước ---
-    var pixelPerMs = moveSpeedPx / FIXED_UPDATE_INTERVAL_MS;
-    goldenJumpStartX_Px = pixelPerMs * GOLDEN_JUMP_START_MS;
-    goldenJumpEndX_Px = pixelPerMs * GOLDEN_JUMP_END_MS;
-    // --- Kết thúc cập nhật ---
 
     if (!isJumping) {
         if (blueDotX > rightBoundaryPx) {
