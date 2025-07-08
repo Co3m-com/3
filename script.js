@@ -1,4 +1,3 @@
-// script.js
 (function() {
     var lastTime = 0;
     var vendors = ['webkit', 'moz'];
@@ -53,38 +52,21 @@ var blueDotX;
 var blueDotY;
 var blueDotDirection = 1;
 
-// --- CÁC HẰNG SỐ GỐC CỦA GAME (TẠI KÍCH THƯỚC THIẾT KẾ THAM CHIẾU) ---
-// Điều chỉnh các giá trị BASE_ này để thay đổi độ khó tổng thể của game.
-// Đơn vị: pixel cho kích thước, pixel/giây cho tốc độ, pixel/giây^2 cho gia tốc
-var BASE_DOT_SIZE = 30; // Kích thước chấm cơ bản (ví dụ: 30px trên màn hình tham chiếu)
+var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
+var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.002;
+var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
 
-// Các thông số điều chỉnh độ khó nhảy so với kích thước chấm
-// Ví dụ: JUMP_HEIGHT_MULTIPLIER = 3.5 nghĩa là chiều cao nhảy sẽ gấp 3.5 lần kích thước chấm.
-// Điều chỉnh 2 hằng số này để cân bằng cảm giác nhảy.
-var JUMP_HEIGHT_MULTIPLIER = 3.5; // Chiều cao nhảy mong muốn (gấp X lần kích thước chấm)
-var GRAVITY_SCALER = 20;          // Gia tốc trọng trường (tỉ lệ với chiều cao nhảy).
-                                  // Giá trị lớn hơn => rơi nhanh hơn, khó giữ trên không.
-                                  // Đơn vị ở đây không phải px/s^2 mà là một hệ số tỉ lệ.
+// Các hằng số mới để điều chỉnh chiều cao nhảy và trọng lực dựa trên chấm đỏ
+var JUMP_HEIGHT_MULTIPLIER_OF_RED_DOT = 2.0; // Chiều cao nhảy gấp 2 lần đường kính chấm đỏ
+var TIME_TO_PEAK_JUMP_MS = 300; // Thời gian mong muốn để đạt đến đỉnh nhảy (miligiây)
 
-var BASE_MOVE_SPEED = 200;       // Tốc độ di chuyển ngang cơ bản (ví dụ: 200px/giây)
-var BASE_MOVEMENT_LIMIT = 300;   // Giới hạn di chuyển ngang từ tâm (ví dụ: 300px)
-
-// --- Tỉ lệ khung hình thiết kế của game ---
-// Đặt tỉ lệ này phù hợp với tỉ lệ khung hình mà bạn muốn game hiển thị tốt nhất.
-// Sử dụng tỉ lệ mà game của bạn trông cân bằng nhất.
-// Ví dụ: 1600x900 cho màn hình ngang phổ biến (16:9), hoặc 900x1600 cho màn hình dọc (9:16).
-// Lựa chọn một tỉ lệ cố định là rất quan trọng để đảm bảo sự đồng nhất.
-var GAME_DESIGN_WIDTH = 1600; 
-var GAME_DESIGN_HEIGHT = 900; 
-
-// Đặt FIXED_UPDATE_INTERVAL_MS thành khoảng 16.67ms (60 FPS) để cân bằng hiệu suất và độ chính xác
-var FIXED_UPDATE_INTERVAL_MS = 1000 / 60; 
+var FIXED_UPDATE_INTERVAL_MS = 10;
 
 var moveSpeedPx;
 var actualJumpHeightPx;
-var gravityPx;
+var gravityPx; // Sẽ được tính toán động
 var movementLimitPx;
-var currentFontSizePx; // Dùng để điều chỉnh kích thước text hiển thị
+var currentFontSizePx;
 
 var isJumping = false;
 var jumpVelocity = 0;
@@ -104,79 +86,60 @@ var accumulatedTime = 0;
 var prevBlueDotX;
 var prevBlueDotY;
 
-// Hàm điều chỉnh kích thước và các thông số game dựa trên tỉ lệ màn hình
-function adjustGameScale() {
+function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-    var viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    var desiredWidthVW = 18 * 5.6;
+    var desiredWidthPx = (desiredWidthVW / 100) * viewportWidth;
 
-    // Tính toán scaleFactor để game vừa vặn nhất có thể mà vẫn giữ tỉ lệ.
-    // Sử dụng Math.min để đảm bảo game luôn hiển thị đầy đủ, không bị cắt.
-    var scaleFactor = Math.min(viewportWidth / GAME_DESIGN_WIDTH, viewportHeight / GAME_DESIGN_HEIGHT);
+    var TEST_FONT_SIZE = 100;
 
-    // Áp dụng scaleFactor cho font size (nếu bạn muốn font cũng thay đổi theo tỉ lệ game)
-    // Ví dụ: font size 50px trên màn hình thiết kế 1600px
-    currentFontSizePx = 50 * scaleFactor; 
+    co3mText.style.fontSize = TEST_FONT_SIZE + 'px';
+    comText.style.fontSize = TEST_FONT_SIZE + 'px';
+
+    var testDotSizePx = TEST_FONT_SIZE * DOT_RATIO_TO_FONT_HEIGHT;
+    redDotStatic.style.width = testDotSizePx + 'px';
+    redDotStatic.style.height = testDotSizePx + 'px';
+
+    var textContainerWidthAtTestSize = textContainer.offsetWidth;
+
+    if (textContainerWidthAtTestSize === 0) {
+        textContainerWidthAtTestSize = 1;
+    }
+
+    var newFontSize = TEST_FONT_SIZE * (desiredWidthPx / textContainerWidthAtTestSize);
+
+    var MIN_FONT_SIZE = 20;
+    var MAX_FONT_SIZE = 3000;
+    newFontSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, newFontSize));
+
+    currentFontSizePx = newFontSize;
 
     co3mText.style.fontSize = currentFontSizePx + 'px';
     comText.style.fontSize = currentFontSizePx + 'px';
 
-    // --- Tính toán kích thước chấm và sau đó chiều cao nhảy, trọng lực dựa trên đó ---
-    var dotSizePx = BASE_DOT_SIZE * scaleFactor;
+    var dotSizePx = currentFontSizePx * DOT_RATIO_TO_FONT_HEIGHT;
     redDotStatic.style.width = dotSizePx + 'px';
     redDotStatic.style.height = dotSizePx + 'px';
     blueDotMoving.style.width = dotSizePx + 'px';
     blueDotMoving.style.height = dotSizePx + 'px';
 
-    // Chiều cao nhảy được tính toán dựa trên kích thước chấm đã được tỉ lệ và hệ số JUMP_HEIGHT_MULTIPLIER
-    actualJumpHeightPx = dotSizePx * JUMP_HEIGHT_MULTIPLIER;
-    
-    // Trọng lực được tính toán dựa trên chiều cao nhảy mong muốn và GRAVITY_SCALER
-    // GRAVITY_SCALER càng lớn, trọng lực càng mạnh, rơi càng nhanh.
-    // Công thức này giúp giữ tỉ lệ giữa lực nhảy và trọng lực nhất quán.
-    gravityPx = actualJumpHeightPx * GRAVITY_SCALER; 
+    moveSpeedPx = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT;
+    movementLimitPx = currentFontSizePx * MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT;
 
-    // Áp dụng scaleFactor cho tốc độ và giới hạn di chuyển
-    moveSpeedPx = BASE_MOVE_SPEED * scaleFactor;
-    movementLimitPx = BASE_MOVEMENT_LIMIT * scaleFactor;
+    // Tính toán lại actualJumpHeightPx và gravityPx dựa trên kích thước chấm đỏ
+    // Đảm bảo redDotStatic đã có kích thước trước khi tính
+    var redDotDiameter = redDotStatic.offsetWidth; // Lấy đường kính của chấm đỏ
+    actualJumpHeightPx = redDotDiameter * JUMP_HEIGHT_MULTIPLIER_OF_RED_DOT;
 
-    // --- Cập nhật các ranh giới và vị trí ban đầu của chấm ---
-    redDotRadiusPx = redDotStatic.offsetWidth / 2;
-    blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
+    // Tính toán trọng lực dựa trên chiều cao nhảy mong muốn và thời gian lên đỉnh
+    // Công thức: h = 0.5 * g * t^2 => g = 2 * h / t^2 (đơn vị: px/s^2)
+    var timeToPeakSeconds = TIME_TO_PEAK_JUMP_MS / 1000; // Đổi miligiây sang giây
+    gravityPx = (2 * actualJumpHeightPx) / (timeToPeakSeconds * timeToPeakSeconds);
 
-    var redDotRect = redDotStatic.getBoundingClientRect();
-    var textContainerRect = textContainer.getBoundingClientRect();
-    // redDotCenterXPx cần được tính toán dựa trên vị trí tương đối trong textContainer
-    // Lấy trung tâm của redDotStatic so với cạnh trái của textContainer
-    redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
-
-    leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
-    rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
-
-    var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
-    blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
-
-    // Điều chỉnh vị trí chấm xanh nếu game đang chạy và bị tràn ra ngoài giới hạn
-    if (!isJumping) {
-        if (blueDotX > rightBoundaryPx) {
-            blueDotX = rightBoundaryPx;
-        } else if (blueDotX < leftBoundaryPx) {
-            blueDotX = leftBoundaryPx;
-        }
-        blueDotY = blueDotBaseY;
-    } else {
-        if (blueDotX > rightBoundaryPx) {
-            blueDotX = rightBoundaryPx;
-        } else if (blueDotX < leftBoundaryPx) {
-            blueDotX = leftBoundaryPx;
-        }
-        // blueDotY sẽ tự động được điều chỉnh bởi logic trọng lực trong gameLoop
-    }
-    prevBlueDotX = blueDotX;
-    prevBlueDotY = blueDotY;
-
-    renderBlueDot(1); // Render ngay lập tức sau khi thay đổi tỉ lệ
+    // Điều chỉnh gravityPx để phù hợp với đơn vị FIXED_UPDATE_INTERVAL_MS (px/ms^2)
+    // gravityPx ban đầu là px/s^2, cần chia cho (1000ms/s)^2
+    gravityPx = gravityPx / (1000 * 1000);
 }
-
 
 function renderBlueDot(alpha) {
     var interpolatedX = prevBlueDotX + (blueDotX - prevBlueDotX) * alpha;
@@ -187,8 +150,7 @@ function renderBlueDot(alpha) {
 }
 
 function moveBlueDotFixed(fixedDeltaTime) {
-    // Chia fixedDeltaTime cho 1000 để chuyển từ miligiay sang giây
-    blueDotX += moveSpeedPx * blueDotDirection * (fixedDeltaTime / 1000); 
+    blueDotX += moveSpeedPx * blueDotDirection * fixedDeltaTime;
 
     if (blueDotX > rightBoundaryPx) {
         blueDotX = rightBoundaryPx;
@@ -202,18 +164,20 @@ function moveBlueDotFixed(fixedDeltaTime) {
 function jump() {
     if (!isJumping) {
         isJumping = true;
-        // jumpVelocity được tính theo px/giây
-        // Công thức vật lý: v^2 = 2 * g * h => v = sqrt(2 * g * h)
-        // Dấu trừ vì chiều đi lên là ngược chiều dương của trục Y (màn hình)
+        // jumpVelocity sẽ âm để đi lên
         jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
     }
 }
 
 function applyGravityFixed(fixedDeltaTime) {
+    // Luôn cập nhật blueDotBaseY để đảm bảo nó ở đúng vị trí trên chấm đỏ
+    // khi chấm đỏ thay đổi kích thước/vị trí (ví dụ, khi resize)
+    var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
+    blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
+
     if (isJumping) {
-        // Chia fixedDeltaTime cho 1000 để chuyển từ miligiay sang giây
-        blueDotY += jumpVelocity * (fixedDeltaTime / 1000); 
-        jumpVelocity += gravityPx * (fixedDeltaTime / 1000); 
+        blueDotY += jumpVelocity * fixedDeltaTime;
+        jumpVelocity += gravityPx * fixedDeltaTime;
 
         if (blueDotY >= blueDotBaseY) {
             blueDotY = blueDotBaseY;
@@ -221,8 +185,7 @@ function applyGravityFixed(fixedDeltaTime) {
             jumpVelocity = 0;
         }
     } else {
-        var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
-        blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
+        // Đảm bảo chấm xanh luôn nằm trên chấm đỏ khi không nhảy
         blueDotY = blueDotBaseY;
     }
 }
@@ -300,11 +263,23 @@ function initializeGame() {
     lastTimestamp = 0;
     accumulatedTime = 0;
 
-    // Gọi hàm điều chỉnh tỉ lệ mới
-    adjustGameScale(); 
+    adjustFontSize(); // Gọi adjustFontSize trước để đảm bảo kích thước các chấm đã được thiết lập
 
-    // Vị trí ban đầu của blueDotX cần được đặt lại dựa trên redDotCenterXPx sau khi scale
-    blueDotX = redDotCenterXPx - blueDotRadiusPx; // Đặt blueDot ở giữa redDot ban đầu
+    redDotRadiusPx = redDotStatic.offsetWidth / 2;
+    blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
+
+    var redDotRect = redDotStatic.getBoundingClientRect();
+    var textContainerRect = textContainer.getBoundingClientRect();
+
+    redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
+
+    leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
+    rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
+
+    var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
+    blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
+
+    blueDotX = redDotCenterXPx + redDotRadiusPx;
     blueDotY = blueDotBaseY;
 
     prevBlueDotX = blueDotX;
@@ -334,11 +309,42 @@ addEvent(window, 'contextmenu', function(event) {
     jump();
 });
 
-// Thêm debounce cho sự kiện resize để tránh tính toán lại quá nhiều lần
-var resizeTimeout;
 addEvent(window, 'resize', function() {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(function() {
-        adjustGameScale(); // Gọi hàm điều chỉnh tỉ lệ mới
-    }, 200); // Đợi 200ms sau khi resize dừng lại
+    adjustFontSize(); // Điều chỉnh kích thước font và các thành phần
+
+    redDotRadiusPx = redDotStatic.offsetWidth / 2;
+    blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
+
+    var redDotRect = redDotStatic.getBoundingClientRect();
+    var textContainerRect = textContainer.getBoundingClientRect();
+    redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
+
+    leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
+    rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
+
+    // Cập nhật lại blueDotBaseY sau khi resize
+    var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
+    blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
+
+    if (!isJumping) {
+        // Đảm bảo blueDotX vẫn nằm trong giới hạn mới
+        if (blueDotX > rightBoundaryPx) {
+            blueDotX = rightBoundaryPx;
+        } else if (blueDotX < leftBoundaryPx) {
+            blueDotX = leftBoundaryPx;
+        }
+        blueDotY = blueDotBaseY; // Đặt lại vị trí Y nếu không nhảy
+    } else {
+        // Nếu đang nhảy, chỉ cập nhật giới hạn X
+        if (blueDotX > rightBoundaryPx) {
+            blueDotX = rightBoundaryPx;
+        } else if (blueDotX < leftBoundaryPx) {
+            blueDotX = leftBoundaryPx;
+        }
+        // Vị trí Y sẽ tự điều chỉnh bởi trọng lực
+    }
+    prevBlueDotX = blueDotX;
+    prevBlueDotY = blueDotY;
+
+    renderBlueDot(1);
 });
