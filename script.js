@@ -57,11 +57,13 @@ var blueDotX;
 var blueDotY;
 var blueDotDirection = 1;
 
-var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
+var DOT_RATIO_TO_FONT_HEIGHT = 0.3; // Giữ nguyên kích thước chấm
+// --- ĐIỀU CHỈNH THÔNG SỐ NHẢY ---
 var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.002;
 var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
-var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.29;
-var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.00003;
+var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.38; // Tăng chiều cao nhảy
+var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.000028; // Giảm nhẹ trọng lực
+// --- KẾT THÚC ĐIỀU CHỈNH ---
 
 var FIXED_UPDATE_INTERVAL_MS = 10;
 
@@ -366,7 +368,7 @@ addEvent(window, 'resize', function() {
         if (blueDotX > rightBoundaryPx) {
             blueDotX = rightBoundaryPx;
         } else if (blueDotX < leftBoundaryPx) {
-            blueDotX = leftDotBoundaryPx; // Sửa lỗi chính tả ở đây: leftDotBoundaryPx -> leftBoundaryPx
+            blueDotX = leftBoundaryPx;
         }
     }
     prevBlueDotX = blueDotX;
