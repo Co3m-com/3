@@ -93,8 +93,8 @@ var prevBlueDotX;
 var prevBlueDotY;
 
 // --- BIẾN THỜI GIAN VÀNG (CÓ THỂ ĐIỀU CHỈNH ĐỂ THAY ĐỔI ĐỘ CAO) ---
-var GOLDEN_TIMING_MIN_MS = 40; // Thời gian tối thiểu còn lại để đến chướng ngại vật
-var GOLDEN_TIMING_MAX_MS = 50; // Thời gian tối đa còn lại để đến chướng ngại vật
+var GOLDEN_TIMING_MIN_MS = 100; // Thời gian tối thiểu còn lại để đến chướng ngại vật
+var GOLDEN_TIMING_MAX_MS = 150; // Thời gian tối đa còn lại để đến chướng ngại vật
 
 // Hệ số điều chỉnh cho độ cao và trọng lực dựa trên thời điểm vàng.
 // Bạn có thể điều chỉnh các hệ số này để tìm được cảm giác nhảy phù hợp.
