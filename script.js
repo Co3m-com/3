@@ -89,16 +89,9 @@ var accumulatedTime = 0;
 var prevBlueDotX;
 var prevBlueDotY;
 
-// --- THAY ĐỔI BIẾN THỜI GIAN NHẢY ---
-var JUMP_GOLDEN_TIMING_START_MS = 100; // Bắt đầu thời điểm vàng (sớm hơn tâm)
-var JUMP_GOLDEN_TIMING_END_MS = 120;   // Kết thúc thời điểm vàng (sớm hơn tâm)
-// Lưu ý: Chúng ta sẽ tính toán dựa trên khoảng cách từ tâm,
-// nên giá trị này thực sự là khoảng cách từ tâm về phía trước.
-// Nếu muốn 100ms TRƯỚC TÂM và 120ms SAU TÂM, logic sẽ khác.
-// Hiện tại tôi hiểu là bạn muốn vùng từ 100ms đến 120ms (tính từ tâm) để nhảy.
-
-// Nếu bạn muốn 100ms trước tâm, và 120ms sau tâm, vui lòng cho tôi biết.
-// Hiện tại, tôi đang giả định thời điểm vàng là khi blue dot còn cách tâm 100-120ms (trên đường di chuyển tới tâm).
+// --- THAY ĐỔI BIẾN THỜI GIAN NHẢY MỚI ---
+var GOLDEN_TIMING_MIN_MS = 40; // Thời gian tối thiểu còn lại để đến chướng ngại vật
+var GOLDEN_TIMING_MAX_MS = 50; // Thời gian tối đa còn lại để đến chướng ngại vật
 // --- KẾT THÚC THAY ĐỔI ---
 
 function adjustFontSize() {
@@ -166,56 +159,51 @@ function moveBlueDotFixed(fixedDeltaTime) {
 
 function jump() {
     if (!isJumping) {
-        // Tính toán vị trí tâm của blue dot và red dot
         var blueDotCenter = blueDotX + blueDotRadiusPx;
         var redDotCenter = redDotStatic.offsetLeft + redDotRadiusPx;
 
-        // Tính toán khoảng cách (theo chiều ngang) từ tâm blue dot đến tâm red dot
-        var distanceToRedDotCenter = redDotCenter - blueDotCenter; // Khoảng cách dương nếu blue dot ở bên trái red dot
+        // Tính khoảng cách từ tâm chấm xanh đến tâm chấm đỏ
+        // Khoảng cách dương nếu blueDotCenter ở bên trái redDotCenter (đang đi tới)
+        // Khoảng cách âm nếu blueDotCenter ở bên phải redDotCenter (đã đi qua)
+        var distanceToRedDotCenter = redDotCenter - blueDotCenter;
 
-        // Chuyển đổi khoảng cách pixel sang thời gian (ms)
-        // moveSpeedPx là pixels/FIXED_UPDATE_INTERVAL_MS.
-        // Tức là, moveSpeedPx / FIXED_UPDATE_INTERVAL_MS là pixels/ms
         var speedPxPerMs = moveSpeedPx / FIXED_UPDATE_INTERVAL_MS;
 
-        // Thời gian để blue dot đến tâm red dot từ vị trí hiện tại
-        // Đảm bảo speedPxPerMs không phải là 0 để tránh chia cho 0
         if (speedPxPerMs === 0) {
-            console.log("Error: speedPxPerMs is zero, cannot calculate jump timing.");
-            redDotStatic.style.border = '2px solid black'; // Báo lỗi hoặc trạng thái không thể nhảy
+            console.log("Lỗi: Tốc độ bằng 0, không thể tính thời gian nhảy.");
+            redDotStatic.style.border = '2px solid black';
             return;
         }
 
+        // Tính thời gian còn lại (hoặc đã qua) để đến tâm chấm đỏ
         var timeToRedDotCenterMs = distanceToRedDotCenter / speedPxPerMs;
 
-        // Kiểm tra xem thời gian còn lại để đến tâm red dot có nằm trong "thời điểm vàng" không
-        // Giả sử blueDotDirection = 1 (đi từ trái sang phải)
-        var isWithinGoldenTiming = false;
+        let canJump = false;
 
-        // Nếu blue dot đang di chuyển về phía red dot (từ trái sang phải hoặc từ phải sang trái)
-        // và đang trong khoảng thời gian vàng để bấm nhảy
+        // Kiểm tra thời điểm vàng: 40 đến 50 mili giây đến chướng ngại vật
+        // Điều này có nghĩa là khi blue dot còn cách tâm red dot 40ms đến 50ms về phía mà nó đang tiến tới.
         if (blueDotDirection === 1) { // Blue dot đang di chuyển từ trái sang phải
-            // Thời điểm vàng là khi blue dot còn cách tâm từ 100ms đến 120ms về phía trái của tâm red dot.
-            if (timeToRedDotCenterMs >= JUMP_GOLDEN_TIMING_START_MS && timeToRedDotCenterMs <= JUMP_GOLDEN_TIMING_END_MS) {
-                isWithinGoldenTiming = true;
+            // Cần bấm khi blue dot còn cách tâm đỏ từ 40ms đến 50ms về phía trái của tâm đỏ
+            if (timeToRedDotCenterMs >= GOLDEN_TIMING_MIN_MS && timeToRedDotCenterMs <= GOLDEN_TIMING_MAX_MS) {
+                canJump = true;
             }
         } else { // Blue dot đang di chuyển từ phải sang trái
-            // Thời điểm vàng là khi blue dot còn cách tâm từ -120ms đến -100ms (tức là 120ms đến 100ms về phía phải của tâm red dot).
-            if (timeToRedDotCenterMs <= -JUMP_GOLDEN_TIMING_START_MS && timeToRedDotCenterMs >= -JUMP_GOLDEN_TIMING_END_MS) {
-                isWithinGoldenTiming = true;
+            // Cần bấm khi blue dot còn cách tâm đỏ từ 40ms đến 50ms về phía phải của tâm đỏ
+            // Điều này có nghĩa là timeToRedDotCenterMs sẽ là giá trị âm, từ -GOLDEN_TIMING_MAX_MS đến -GOLDEN_TIMING_MIN_MS
+            if (timeToRedDotCenterMs <= -GOLDEN_TIMING_MIN_MS && timeToRedDotCenterMs >= -GOLDEN_TIMING_MAX_MS) {
+                canJump = true;
             }
         }
 
-
-        if (isWithinGoldenTiming) {
+        if (canJump) {
             isJumping = true;
             jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
             redDotStatic.style.border = '2px solid gold'; // Phản hồi trực quan cho cú nhảy thành công
             console.log("Golden Jump! Time to center:", timeToRedDotCenterMs.toFixed(2), "ms");
         } else {
-            console.log("Jump attempt outside golden timing. No jump. Time to center:", timeToRedDotCenterMs.toFixed(2), "ms");
+            console.log("Nhảy không đúng thời điểm vàng. Không nhảy. Thời gian đến tâm:", timeToRedDotCenterMs.toFixed(2), "ms");
             redDotStatic.style.border = '2px solid red'; // Phản hồi trực quan cho cú nhảy thất bại
-            // Reset border sau một thời gian ngắn để người chơi biết mình đã thất bại
+            // Đặt lại viền sau một thời gian ngắn để người chơi biết mình đã thất bại
             setTimeout(() => {
                 redDotStatic.style.border = 'none';
             }, 300);
