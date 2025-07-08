@@ -3,9 +3,9 @@
     var vendors = ['webkit', 'moz'];
     var x;
     for(x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-        window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+        window.requestAnimationFrame = window['webkitRequestAnimationFrame'];
         window.cancelAnimationFrame =
-            window[vendors[x] + 'CancelAnimationFrame'] || window[vendors[x] + 'CancelRequestAnimationFrame'];
+          window['webkitCancelAnimationFrame'] || window['webkitCancelRequestAnimationFrame'];
     }
 
     if (!window.requestAnimationFrame) {
@@ -13,7 +13,7 @@
             var currTime = new Date().getTime();
             var timeToCall = Math.max(0, 16 - (currTime - lastTime));
             var id = window.setTimeout(function() { callback(currTime + timeToCall); },
-                timeToCall);
+              timeToCall);
             lastTime = currTime + timeToCall;
             return id;
         };
@@ -101,7 +101,7 @@ function adjustFontSize() {
     var textContainerWidthAtTestSize = textContainer.offsetWidth;
 
     if (textContainerWidthAtTestSize === 0) {
-        textContainerWidthAtTestSize = 1;
+         textContainerWidthAtTestSize = 1;
     }
 
     var newFontSize = TEST_FONT_SIZE * (desiredWidthPx / textContainerWidthAtTestSize);
@@ -121,24 +121,10 @@ function adjustFontSize() {
     blueDotMoving.style.width = dotSizePx + 'px';
     blueDotMoving.style.height = dotSizePx + 'px';
 
-    // Các tính toán ban đầu dựa trên font size
     moveSpeedPx = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT;
     actualJumpHeightPx = currentFontSizePx * DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT;
     gravityPx = currentFontSizePx * GRAVITY_RATIO_TO_FONT_HEIGHT;
     movementLimitPx = currentFontSizePx * MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT;
-
-    // --- BẮT ĐẦU ĐOẠN CODE ĐIỀU CHỈNH KHI XOAY NGANG ---
-    var isLandscape = window.innerWidth > window.innerHeight;
-    if (isLandscape) {
-        // Điều chỉnh các hằng số khi ở chế độ ngang
-        // Bạn có thể thay đổi các giá trị 0.7 hoặc thử các giá trị khác nhau
-        moveSpeedPx = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT * 0.7; // Giảm tốc độ di chuyển
-        movementLimitPx = currentFontSizePx * MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT * 0.7; // Giảm giới hạn di chuyển
-        // Bạn cũng có thể xem xét điều chỉnh jumpHeight hoặc gravity nếu cần
-        // actualJumpHeightPx = currentFontSizePx * DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT * 0.9;
-        // gravityPx = currentFontSizePx * GRAVITY_RATIO_TO_FONT_HEIGHT * 0.9;
-    }
-    // --- KẾT THÚC ĐOẠN CODE ĐIỀU CHỈNH KHI XOAY NGANG ---
 }
 
 function renderBlueDot(alpha) {
@@ -258,7 +244,7 @@ function initializeGame() {
     lastTimestamp = 0;
     accumulatedTime = 0;
 
-    adjustFontSize(); // Gọi hàm này để thiết lập các giá trị ban đầu và điều chỉnh khi cần
+    adjustFontSize();
 
     redDotRadiusPx = redDotStatic.offsetWidth / 2;
     blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
@@ -305,7 +291,7 @@ addEvent(window, 'contextmenu', function(event) {
 });
 
 addEvent(window, 'resize', function() {
-    adjustFontSize(); // Gọi lại hàm này khi resize để cập nhật các giá trị
+    adjustFontSize();
 
     redDotRadiusPx = redDotStatic.offsetWidth / 2;
     blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
@@ -328,13 +314,11 @@ addEvent(window, 'resize', function() {
         }
         blueDotY = blueDotBaseY;
     } else {
-        // Giữ vị trí X của chấm xanh trong giới hạn mới nếu nó đang nhảy
         if (blueDotX > rightBoundaryPx) {
             blueDotX = rightBoundaryPx;
         } else if (blueDotX < leftBoundaryPx) {
             blueDotX = leftBoundaryPx;
         }
-        // Vị trí Y sẽ được cập nhật trong applyGravityFixed
     }
     prevBlueDotX = blueDotX;
     prevBlueDotY = blueDotY;
