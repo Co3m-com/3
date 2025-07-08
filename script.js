@@ -5,7 +5,7 @@
     for(x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
         window.requestAnimationFrame = window['webkitRequestAnimationFrame'];
         window.cancelAnimationFrame =
-          window['webkitCancelAnimationFrame'] || window['webkitCancelRequestAnimationFrame'];
+            window['webkitCancelAnimationFrame'] || window['webkitCancelRequestAnimationFrame'];
     }
 
     if (!window.requestAnimationFrame) {
@@ -13,7 +13,7 @@
             var currTime = new Date().getTime();
             var timeToCall = Math.max(0, 16 - (currTime - lastTime));
             var id = window.setTimeout(function() { callback(currTime + timeToCall); },
-              timeToCall);
+                timeToCall);
             lastTime = currTime + timeToCall;
             return id;
         };
@@ -58,7 +58,8 @@ var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
 var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.29;
 var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.00003;
 
-var FIXED_UPDATE_INTERVAL_MS = 10;
+// Đặt FIXED_UPDATE_INTERVAL_MS thành khoảng 16.67ms (60 FPS) để cân bằng hiệu suất và độ chính xác
+var FIXED_UPDATE_INTERVAL_MS = 1000 / 60; 
 
 var moveSpeedPx;
 var actualJumpHeightPx;
@@ -101,7 +102,7 @@ function adjustFontSize() {
     var textContainerWidthAtTestSize = textContainer.offsetWidth;
 
     if (textContainerWidthAtTestSize === 0) {
-         textContainerWidthAtTestSize = 1;
+        textContainerWidthAtTestSize = 1;
     }
 
     var newFontSize = TEST_FONT_SIZE * (desiredWidthPx / textContainerWidthAtTestSize);
@@ -131,6 +132,10 @@ function renderBlueDot(alpha) {
     var interpolatedX = prevBlueDotX + (blueDotX - prevBlueDotX) * alpha;
     var interpolatedY = prevBlueDotY + (blueDotY - prevBlueDotY) * alpha;
 
+    // Sử dụng Math.round() hoặc toFixed() nếu bạn muốn làm tròn để tránh các giá trị thập phân quá dài,
+    // nhưng hãy cẩn thận vì điều này có thể ảnh hưởng đến độ mượt mà.
+    // blueDotMoving.style.left = Math.round(interpolatedX) + 'px';
+    // blueDotMoving.style.top = Math.round(interpolatedY) + 'px';
     blueDotMoving.style.left = interpolatedX + 'px';
     blueDotMoving.style.top = interpolatedY + 'px';
 }
@@ -290,38 +295,47 @@ addEvent(window, 'contextmenu', function(event) {
     jump();
 });
 
+// Thêm debounce cho sự kiện resize để tránh tính toán lại quá nhiều lần
+var resizeTimeout;
 addEvent(window, 'resize', function() {
-    adjustFontSize();
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(function() {
+        adjustFontSize();
 
-    redDotRadiusPx = redDotStatic.offsetWidth / 2;
-    blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
+        redDotRadiusPx = redDotStatic.offsetWidth / 2;
+        blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
 
-    var redDotRect = redDotStatic.getBoundingClientRect();
-    var textContainerRect = textContainer.getBoundingClientRect();
-    redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
+        var redDotRect = redDotStatic.getBoundingClientRect();
+        var textContainerRect = textContainer.getBoundingClientRect();
+        redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
 
-    leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
-    rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
+        leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
+        rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
 
-    var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
-    blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
+        var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
+        blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
 
-    if (!isJumping) {
-        if (blueDotX > rightBoundaryPx) {
-            blueDotX = rightBoundaryPx;
-        } else if (blueDotX < leftBoundaryPx) {
-            blueDotX = leftBoundaryPx;
+        // Đảm bảo blueDotX và blueDotY được cập nhật chính xác sau khi thay đổi kích thước
+        if (!isJumping) {
+            // Nếu không nhảy, đặt lại vị trí Y về đáy và điều chỉnh X nếu vượt quá giới hạn
+            if (blueDotX > rightBoundaryPx) {
+                blueDotX = rightBoundaryPx;
+            } else if (blueDotX < leftBoundaryPx) {
+                blueDotX = leftBoundaryPx;
+            }
+            blueDotY = blueDotBaseY;
+        } else {
+            // Nếu đang nhảy, chỉ điều chỉnh X nếu vượt quá giới hạn
+            if (blueDotX > rightBoundaryPx) {
+                blueDotX = rightBoundaryPx;
+            } else if (blueDotX < leftBoundaryPx) {
+                blueDotX = leftBoundaryPx;
+            }
+            // blueDotY sẽ tự động được điều chỉnh bởi logic trọng lực trong gameLoop
         }
-        blueDotY = blueDotBaseY;
-    } else {
-        if (blueDotX > rightBoundaryPx) {
-            blueDotX = rightBoundaryPx;
-        } else if (blueDotX < leftBoundaryPx) {
-            blueDotX = leftBoundaryPx;
-        }
-    }
-    prevBlueDotX = blueDotX;
-    prevBlueDotY = blueDotY;
+        prevBlueDotX = blueDotX;
+        prevBlueDotY = blueDotY;
 
-    renderBlueDot(1);
+        renderBlueDot(1); // Render ngay lập tức sau khi resize
+    }, 200); // Đợi 200ms sau khi resize dừng lại
 });
