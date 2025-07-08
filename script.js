@@ -58,7 +58,7 @@ var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
 var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.29;
 var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.00003;
 
-var FIXED_UPDATE_INTERVAL_MS = 10; // Cố định tốc độ cập nhật logic game
+var FIXED_UPDATE_INTERVAL_MS = 10;
 
 var moveSpeedPx;
 var actualJumpHeightPx;
@@ -100,6 +100,7 @@ var GOLDEN_JUMP_MAX_OFFSET_PX;
 
 var isCurrentlyInGoldenZone = false; // Theo dõi nếu chấm xanh đang ở vị trí vàng
 var jumpedInGoldenZone = false; // Theo dõi nếu cú nhảy xảy ra trong vùng vàng
+var lastJumpWasGolden = false; // Theo dõi kết quả của cú nhảy cuối cùng
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -144,39 +145,8 @@ function adjustFontSize() {
     movementLimitPx = currentFontSizePx * MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT;
 
     // Tính toán các ngưỡng "thời điểm vàng" bằng pixel
-    // Giả sử tâm của vùng an toàn là 0ms.
-    // Khoảng cách 2 bên 200ms nghĩa là từ -100ms đến +100ms từ tâm.
-    // Nếu thời điểm vàng là 90-110ms, có thể hiểu là 90-110ms trước khi chấm xanh đến tâm.
-    // Hoặc, nếu "200ms" là tổng thời gian di chuyển qua khu vực đỏ,
-    // thì 90-110ms là 90-110ms tính từ một điểm mốc cố định (ví dụ: mép trái của vùng 200ms).
-    // Tôi sẽ giả định "90-110ms" là khoảng thời gian TỪ KHI CHẤM XANH BẮT ĐẦU VÀO VÙNG "VÀNG"
-    // cho đến khi nó rời khỏi vùng đó.
-    // Định nghĩa này cần phải rất rõ ràng trong game của bạn.
-    // Ví dụ đơn giản: tâm chấm đỏ là 0. Khoảng cách vàng là +/- N pixel so với tâm.
-    // Tạm thời, tôi sẽ tính khoảng cách này dựa trên thời gian di chuyển từ tâm.
-    // Nếu bạn muốn 90ms đến 110ms *cách tâm*, thì đó là:
-    
-    // Khoảng cách từ tâm chấm đỏ (pixel)
-    // Ví dụ: tâm = 0px. Biên xa nhất = MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT * currentFontSizePx
-    // Thời gian để đi từ tâm ra biên xa nhất: (MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT * currentFontSizePx) / moveSpeedPx
-    // Tạm giả định "90-110ms" là khoảng thời gian "đối xứng" quanh tâm chấm đỏ.
-    // Nếu 200ms là tổng thời gian từ biên trái đến biên phải của vùng di chuyển (2 * movementLimitPx),
-    // thì 100ms là thời gian đến tâm.
-    // 90ms đến 110ms có thể được hiểu là -10ms đến +10ms so với tâm 100ms.
-    // Vậy khoảng cách pixel tương ứng sẽ là:
-    // MIN: (100 - (TOTAL_MOVEMENT_TIME_MS / 2) + GOLDEN_JUMP_MIN_MS) * moveSpeedPx;
-    // MAX: (100 - (TOTAL_MOVEMENT_TIME_MS / 2) + GOLDEN_JUMP_MAX_MS) * moveSpeedPx;
-
-    // Cách đơn giản hơn: Khoảng cách tính từ tâm chấm đỏ.
-    // Nếu 90ms và 110ms là khoảng thời gian từ tâm, thì:
     GOLDEN_JUMP_MIN_OFFSET_PX = GOLDEN_JUMP_MIN_MS * moveSpeedPx;
     GOLDEN_JUMP_MAX_OFFSET_PX = GOLDEN_JUMP_MAX_MS * moveSpeedPx;
-
-    // Lưu ý: Nếu chấm xanh di chuyển từ trái sang phải, thì khi nó cách tâm một đoạn là Golden_Jump_Min_Offset_Px
-    // và tiếp tục đi cho đến Golden_Jump_Max_Offset_Px, đó là vùng vàng.
-    // Tức là: redDotCenterXPx - GOLDEN_JUMP_MAX_OFFSET_PX đến redDotCenterXPx - GOLDEN_JUMP_MIN_OFFSET_PX (khi đi vào)
-    // và redDotCenterXPx + GOLDEN_JUMP_MIN_OFFSET_PX đến redDotCenterXPx + GOLDEN_JUMP_MAX_OFFSET_PX (khi đi ra)
-    // Để dễ hơn, tôi sẽ xác định vùng vàng là một khoảng cách tuyệt đối từ tâm.
 }
 
 function renderBlueDot(alpha) {
@@ -198,28 +168,25 @@ function moveBlueDotFixed(fixedDeltaTime) {
         blueDotDirection *= -1;
     }
 
-    // --- Cập nhật trạng thái "đang ở vùng vàng" ---
+    // --- Cập nhật trạng thái "đang ở vùng vàng" và phản hồi viền ---
     var blueDotCenterCurrentX = blueDotX + blueDotRadiusPx;
     var distanceToRedCenter = Math.abs(blueDotCenterCurrentX - redDotCenterXPx);
 
-    // Vùng vàng là khi khoảng cách từ tâm chấm đỏ nằm trong một ngưỡng nhất định.
-    // Tôi sẽ định nghĩa "vàng" là khi khoảng cách từ tâm chấm đỏ (theo trục X)
-    // nằm trong khoảng tương ứng với 90ms đến 110ms từ tâm.
-    // Điều này có nghĩa là khi chấm xanh cách tâm một khoảng `distanceFromCenterGoldenMin` đến `distanceFromCenterGoldenMax`
-    // (ví dụ: khoảng cách 90px đến 110px nếu tốc độ là 1px/ms)
-    // Lưu ý: Khoảng cách này là tuyệt đối từ tâm, không phải theo chiều.
     var distanceFromCenterGoldenMin = GOLDEN_JUMP_MIN_OFFSET_PX;
     var distanceFromCenterGoldenMax = GOLDEN_JUMP_MAX_OFFSET_PX;
 
-    if (distanceToRedCenter >= distanceFromCenterGoldenMin && distanceToRedCenter <= distanceFromCenterGoldenMax) {
-        if (!isCurrentlyInGoldenZone) {
-            isCurrentlyInGoldenZone = true;
-            redDotStatic.style.border = '2px solid gold'; // Đánh dấu vùng vàng
-        }
-    } else {
+    var newGoldenZoneStatus = (distanceToRedCenter >= distanceFromCenterGoldenMin && distanceToRedCenter <= distanceFromCenterGoldenMax);
+
+    if (newGoldenZoneStatus !== isCurrentlyInGoldenZone) {
+        isCurrentlyInGoldenZone = newGoldenZoneStatus;
         if (isCurrentlyInGoldenZone) {
-            isCurrentlyInGoldenZone = false;
-            if (!jumpedInGoldenZone) { // Chỉ bỏ viền nếu chưa nhảy thành công
+            // Khi vào vùng vàng, chỉ hiển thị viền vàng nếu chưa nhảy thành công
+            if (!lastJumpWasGolden) { // Chỉ hiển thị viền vàng nếu cú nhảy trước không phải là vàng
+                redDotStatic.style.border = '2px solid gold';
+            }
+        } else {
+            // Khi ra khỏi vùng vàng, chỉ bỏ viền nếu cú nhảy trước đó không phải là vàng
+            if (!lastJumpWasGolden) {
                 redDotStatic.style.border = 'none';
             }
         }
@@ -233,13 +200,13 @@ function jump() {
 
         // Kiểm tra xem cú nhảy có được thực hiện trong vùng vàng không
         if (isCurrentlyInGoldenZone) {
-            jumpedInGoldenZone = true;
+            lastJumpWasGolden = true; // Đánh dấu cú nhảy này là vàng
             redDotStatic.style.border = '2px solid limegreen'; // Phản hồi thành công
             console.log("Cú nhảy VÀNG!");
         } else {
-            jumpedInGoldenZone = false;
-            redDotStatic.style.border = '2px solid red'; // Phản hồi không thành công
-            console.log("Cú nhảy KHÔNG VÀNG.");
+            lastJumpWasGolden = false; // Đánh dấu cú nhảy này không vàng
+            redDotStatic.style.border = 'none'; // Không có viền khi nhảy sai thời điểm
+            console.log("Cú nhảy KHÔNG VÀNG. Trở về trạng thái ban đầu.");
         }
     }
 }
@@ -253,10 +220,15 @@ function applyGravityFixed(fixedDeltaTime) {
             blueDotY = blueDotBaseY;
             isJumping = false;
             jumpVelocity = 0;
-            // Sau khi chạm đất, reset trạng thái nhảy thành công
-            jumpedInGoldenZone = false;
-            if (!isCurrentlyInGoldenZone) { // Nếu không còn trong vùng vàng, bỏ viền
+            // Sau khi chạm đất, nếu cú nhảy trước đó không phải vàng
+            // và không còn trong vùng vàng, thì reset viền về mặc định
+            if (!lastJumpWasGolden && !isCurrentlyInGoldenZone) {
                 redDotStatic.style.border = 'none';
+            } else if (lastJumpWasGolden) {
+                // Nếu là cú nhảy vàng, giữ viền xanh lá cho đến khi ra khỏi vùng vàng
+                // hoặc cú nhảy tiếp theo
+                // (viền sẽ bị ghi đè bởi logic moveBlueDotFixed khi ra khỏi vùng vàng
+                // hoặc bởi cú nhảy mới)
             }
         }
     } else {
@@ -281,8 +253,6 @@ function checkCollision() {
     var minDistance = redDotRadiusPx + blueDotRadiusPx;
 
     if (distance < minDistance) {
-        // Có va chạm, nhưng chúng ta không thay đổi hành vi nhảy ở đây.
-        // Đây là va chạm vật lý, không phải điều kiện "thời điểm vàng".
         return true;
     }
     return false;
@@ -308,7 +278,7 @@ function gameLoop(timestamp) {
     while (accumulatedTime >= FIXED_UPDATE_INTERVAL_MS) {
         moveBlueDotFixed(FIXED_UPDATE_INTERVAL_MS);
         applyGravityFixed(FIXED_UPDATE_INTERVAL_MS);
-        checkCollision(); // Vẫn gọi để xử lý va chạm nếu bạn có thêm logic khác
+        checkCollision();
         accumulatedTime -= FIXED_UPDATE_INTERVAL_MS;
     }
 
@@ -327,7 +297,7 @@ function initializeGame() {
     lastTimestamp = 0;
     accumulatedTime = 0;
 
-    adjustFontSize(); // Gọi lại để đảm bảo tính toán lại các biến kích thước và tốc độ
+    adjustFontSize();
 
     redDotRadiusPx = redDotStatic.offsetWidth / 2;
     blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
@@ -343,7 +313,7 @@ function initializeGame() {
     var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
     blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
 
-    blueDotX = redDotCenterXPx + redDotRadiusPx; // Khởi tạo vị trí ban đầu
+    blueDotX = redDotCenterXPx + redDotRadiusPx;
     blueDotY = blueDotBaseY;
 
     prevBlueDotX = blueDotX;
@@ -351,6 +321,7 @@ function initializeGame() {
 
     isCurrentlyInGoldenZone = false;
     jumpedInGoldenZone = false;
+    lastJumpWasGolden = false; // Reset trạng thái nhảy
     redDotStatic.style.border = 'none'; // Đảm bảo không có viền khi khởi tạo
 
     renderBlueDot(1);
@@ -360,11 +331,9 @@ function initializeGame() {
 
 addEvent(window, 'load', initializeGame);
 
-// Bắt sự kiện nhảy
 addEvent(fullscreenOverlay, 'mousedown', jump);
 addEvent(fullscreenOverlay, 'touchstart', jump);
 addEvent(window, 'keydown', function(event) {
-    // Ngăn chặn hành vi mặc định của phím (ví dụ: cuộn trang)
     if (event && event.preventDefault) {
         event.preventDefault();
     }
@@ -378,6 +347,5 @@ addEvent(window, 'contextmenu', function(event) {
 });
 
 addEvent(window, 'resize', function() {
-    // Khi thay đổi kích thước cửa sổ, khởi tạo lại game để điều chỉnh kích thước và vị trí
     initializeGame();
 });
