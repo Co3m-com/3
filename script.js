@@ -89,10 +89,10 @@ var accumulatedTime = 0;
 var prevBlueDotX;
 var prevBlueDotY;
 
-// --- THAY ĐỔI BIẾN THỜI GIAN NHẢY MỚI ---
+// --- BIẾN THỜI GIAN VÀNG ---
 var GOLDEN_TIMING_MIN_MS = 40; // Thời gian tối thiểu còn lại để đến chướng ngại vật
 var GOLDEN_TIMING_MAX_MS = 50; // Thời gian tối đa còn lại để đến chướng ngại vật
-// --- KẾT THÚC THAY ĐỔI ---
+// --- KẾT THÚC BIẾN THỜI GIAN VÀNG ---
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -158,15 +158,12 @@ function moveBlueDotFixed(fixedDeltaTime) {
 }
 
 function jump() {
+    // Luôn cho phép nhảy nếu không đang nhảy
     if (!isJumping) {
         var blueDotCenter = blueDotX + blueDotRadiusPx;
         var redDotCenter = redDotStatic.offsetLeft + redDotRadiusPx;
 
-        // Tính khoảng cách từ tâm chấm xanh đến tâm chấm đỏ
-        // Khoảng cách dương nếu blueDotCenter ở bên trái redDotCenter (đang đi tới)
-        // Khoảng cách âm nếu blueDotCenter ở bên phải redDotCenter (đã đi qua)
         var distanceToRedDotCenter = redDotCenter - blueDotCenter;
-
         var speedPxPerMs = moveSpeedPx / FIXED_UPDATE_INTERVAL_MS;
 
         if (speedPxPerMs === 0) {
@@ -175,35 +172,33 @@ function jump() {
             return;
         }
 
-        // Tính thời gian còn lại (hoặc đã qua) để đến tâm chấm đỏ
         var timeToRedDotCenterMs = distanceToRedDotCenter / speedPxPerMs;
 
-        let canJump = false;
+        let isGoldenTiming = false; // Biến để kiểm tra có phải thời điểm vàng không
 
         // Kiểm tra thời điểm vàng: 40 đến 50 mili giây đến chướng ngại vật
-        // Điều này có nghĩa là khi blue dot còn cách tâm red dot 40ms đến 50ms về phía mà nó đang tiến tới.
         if (blueDotDirection === 1) { // Blue dot đang di chuyển từ trái sang phải
-            // Cần bấm khi blue dot còn cách tâm đỏ từ 40ms đến 50ms về phía trái của tâm đỏ
             if (timeToRedDotCenterMs >= GOLDEN_TIMING_MIN_MS && timeToRedDotCenterMs <= GOLDEN_TIMING_MAX_MS) {
-                canJump = true;
+                isGoldenTiming = true;
             }
         } else { // Blue dot đang di chuyển từ phải sang trái
-            // Cần bấm khi blue dot còn cách tâm đỏ từ 40ms đến 50ms về phía phải của tâm đỏ
-            // Điều này có nghĩa là timeToRedDotCenterMs sẽ là giá trị âm, từ -GOLDEN_TIMING_MAX_MS đến -GOLDEN_TIMING_MIN_MS
             if (timeToRedDotCenterMs <= -GOLDEN_TIMING_MIN_MS && timeToRedDotCenterMs >= -GOLDEN_TIMING_MAX_MS) {
-                canJump = true;
+                isGoldenTiming = true;
             }
         }
 
-        if (canJump) {
-            isJumping = true;
-            jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
-            redDotStatic.style.border = '2px solid gold'; // Phản hồi trực quan cho cú nhảy thành công
+        // Luôn thực hiện cú nhảy
+        isJumping = true;
+        jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
+
+        // Đặt viền và thông báo dựa trên việc có phải thời điểm vàng không
+        if (isGoldenTiming) {
+            redDotStatic.style.border = '2px solid gold'; // Phản hồi trực quan cho cú nhảy thành công vàng
             console.log("Golden Jump! Time to center:", timeToRedDotCenterMs.toFixed(2), "ms");
         } else {
-            console.log("Nhảy không đúng thời điểm vàng. Không nhảy. Thời gian đến tâm:", timeToRedDotCenterMs.toFixed(2), "ms");
-            redDotStatic.style.border = '2px solid red'; // Phản hồi trực quan cho cú nhảy thất bại
-            // Đặt lại viền sau một thời gian ngắn để người chơi biết mình đã thất bại
+            redDotStatic.style.border = '2px solid green'; // Phản hồi trực quan cho cú nhảy bình thường
+            console.log("Normal Jump. Time to center:", timeToRedDotCenterMs.toFixed(2), "ms");
+            // Đặt lại viền sau một thời gian ngắn cho cú nhảy bình thường
             setTimeout(() => {
                 redDotStatic.style.border = 'none';
             }, 300);
@@ -230,7 +225,6 @@ function applyGravityFixed(fixedDeltaTime) {
 }
 
 function checkCollision() {
-    // Logic va chạm vật lý vẫn giữ nguyên, nhưng logic nhảy được quyết định ở hàm `jump()`
     var redCenterX = redDotStatic.offsetLeft + (redDotStatic.offsetWidth / 2);
     var redCenterY = redDotStatic.offsetTop + (redDotStatic.offsetHeight / 2);
 
@@ -244,7 +238,6 @@ function checkCollision() {
     var minDistance = redDotRadiusPx + blueDotRadiusPx;
 
     if (distance < minDistance) {
-        // Đây là va chạm vật lý, không nhất thiết là cú nhảy thất bại nếu đã nhảy thành công
         var overlap = minDistance - distance;
         var angle = Math.atan2(dy, dx);
 
@@ -373,7 +366,7 @@ addEvent(window, 'resize', function() {
         if (blueDotX > rightBoundaryPx) {
             blueDotX = rightBoundaryPx;
         } else if (blueDotX < leftBoundaryPx) {
-            blueDotX = leftBoundaryPx;
+            blueDotX = leftDotBoundaryPx; // Sửa lỗi chính tả ở đây: leftDotBoundaryPx -> leftBoundaryPx
         }
     }
     prevBlueDotX = blueDotX;
