@@ -1,3 +1,4 @@
+// script.js
 (function() {
     var lastTime = 0;
     var vendors = ['webkit', 'moz'];
@@ -52,25 +53,27 @@ var blueDotX;
 var blueDotY;
 var blueDotDirection = 1;
 
-// --- Các hằng số gốc của game (thiết kế trên một màn hình tham chiếu) ---
+// --- CÁC HẰNG SỐ GỐC CỦA GAME (TẠI KÍCH THƯỚC THIẾT KẾ THAM CHIẾU) ---
+// Điều chỉnh các giá trị BASE_ này để thay đổi độ khó tổng thể của game.
 // Đơn vị: pixel cho kích thước, pixel/giây cho tốc độ, pixel/giây^2 cho gia tốc
-var BASE_DOT_SIZE = 30; // Kích thước chấm cơ bản (ví dụ: 30px)
+var BASE_DOT_SIZE = 30; // Kích thước chấm cơ bản (ví dụ: 30px trên màn hình tham chiếu)
 
 // Các thông số điều chỉnh độ khó nhảy so với kích thước chấm
-// Ví dụ: JUMP_HEIGHT_MULTIPLIER = 3 nghĩa là chiều cao nhảy sẽ gấp 3 lần kích thước chấm.
+// Ví dụ: JUMP_HEIGHT_MULTIPLIER = 3.5 nghĩa là chiều cao nhảy sẽ gấp 3.5 lần kích thước chấm.
+// Điều chỉnh 2 hằng số này để cân bằng cảm giác nhảy.
 var JUMP_HEIGHT_MULTIPLIER = 3.5; // Chiều cao nhảy mong muốn (gấp X lần kích thước chấm)
-var GRAVITY_SCALER = 2.0; // Gia tốc trọng trường (tỉ lệ với chiều cao nhảy và tốc độ)
-                          // Điều chỉnh giá trị này để thay đổi cảm giác rơi.
-                          // Giá trị lớn hơn => rơi nhanh hơn, khó giữ trên không.
+var GRAVITY_SCALER = 20;          // Gia tốc trọng trường (tỉ lệ với chiều cao nhảy).
+                                  // Giá trị lớn hơn => rơi nhanh hơn, khó giữ trên không.
+                                  // Đơn vị ở đây không phải px/s^2 mà là một hệ số tỉ lệ.
 
-var BASE_MOVE_SPEED = 200; // Tốc độ di chuyển ngang cơ bản (ví dụ: 200px/giây)
-var BASE_MOVEMENT_LIMIT = 300; // Giới hạn di chuyển ngang từ tâm (ví dụ: 300px)
-
+var BASE_MOVE_SPEED = 200;       // Tốc độ di chuyển ngang cơ bản (ví dụ: 200px/giây)
+var BASE_MOVEMENT_LIMIT = 300;   // Giới hạn di chuyển ngang từ tâm (ví dụ: 300px)
 
 // --- Tỉ lệ khung hình thiết kế của game ---
 // Đặt tỉ lệ này phù hợp với tỉ lệ khung hình mà bạn muốn game hiển thị tốt nhất.
-// Ví dụ: 1600x900 cho màn hình ngang phổ biến (16:9), hoặc 900x1600 cho màn hình dọc.
-// Chọn một tỉ lệ cố định để đảm bảo sự đồng nhất.
+// Sử dụng tỉ lệ mà game của bạn trông cân bằng nhất.
+// Ví dụ: 1600x900 cho màn hình ngang phổ biến (16:9), hoặc 900x1600 cho màn hình dọc (9:16).
+// Lựa chọn một tỉ lệ cố định là rất quan trọng để đảm bảo sự đồng nhất.
 var GAME_DESIGN_WIDTH = 1600; 
 var GAME_DESIGN_HEIGHT = 900; 
 
@@ -124,14 +127,13 @@ function adjustGameScale() {
     blueDotMoving.style.width = dotSizePx + 'px';
     blueDotMoving.style.height = dotSizePx + 'px';
 
-    // Chiều cao nhảy và trọng lực được tính toán dựa trên kích thước chấm đã được tỉ lệ
+    // Chiều cao nhảy được tính toán dựa trên kích thước chấm đã được tỉ lệ và hệ số JUMP_HEIGHT_MULTIPLIER
     actualJumpHeightPx = dotSizePx * JUMP_HEIGHT_MULTIPLIER;
-    // Trọng lực có thể tính dựa trên chiều cao nhảy mong muốn.
-    // Công thức: v^2 = 2 * g * h => g = v^2 / (2 * h) hoặc g = 2 * h / t^2
-    // Để giữ cảm giác nhảy đồng nhất, chúng ta muốn có một tỷ lệ cố định giữa chiều cao nhảy và gia tốc.
-    // GRAVITY_SCALER điều chỉnh độ "nặng" của trọng lực so với chiều cao nhảy.
-    // Ví dụ: GRAVITY_SCALER = 2.0 có nghĩa là thời gian rơi sẽ được điều chỉnh để phù hợp với chiều cao.
-    gravityPx = actualJumpHeightPx * GRAVITY_SCALER; // Điều chỉnh GRAVITY_SCALER để tinh chỉnh.
+    
+    // Trọng lực được tính toán dựa trên chiều cao nhảy mong muốn và GRAVITY_SCALER
+    // GRAVITY_SCALER càng lớn, trọng lực càng mạnh, rơi càng nhanh.
+    // Công thức này giúp giữ tỉ lệ giữa lực nhảy và trọng lực nhất quán.
+    gravityPx = actualJumpHeightPx * GRAVITY_SCALER; 
 
     // Áp dụng scaleFactor cho tốc độ và giới hạn di chuyển
     moveSpeedPx = BASE_MOVE_SPEED * scaleFactor;
@@ -143,6 +145,8 @@ function adjustGameScale() {
 
     var redDotRect = redDotStatic.getBoundingClientRect();
     var textContainerRect = textContainer.getBoundingClientRect();
+    // redDotCenterXPx cần được tính toán dựa trên vị trí tương đối trong textContainer
+    // Lấy trung tâm của redDotStatic so với cạnh trái của textContainer
     redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
 
     leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
@@ -199,6 +203,8 @@ function jump() {
     if (!isJumping) {
         isJumping = true;
         // jumpVelocity được tính theo px/giây
+        // Công thức vật lý: v^2 = 2 * g * h => v = sqrt(2 * g * h)
+        // Dấu trừ vì chiều đi lên là ngược chiều dương của trục Y (màn hình)
         jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
     }
 }
@@ -294,7 +300,8 @@ function initializeGame() {
     lastTimestamp = 0;
     accumulatedTime = 0;
 
-    adjustGameScale(); // Gọi hàm điều chỉnh tỉ lệ mới
+    // Gọi hàm điều chỉnh tỉ lệ mới
+    adjustGameScale(); 
 
     // Vị trí ban đầu của blueDotX cần được đặt lại dựa trên redDotCenterXPx sau khi scale
     blueDotX = redDotCenterXPx - blueDotRadiusPx; // Đặt blueDot ở giữa redDot ban đầu
@@ -327,6 +334,7 @@ addEvent(window, 'contextmenu', function(event) {
     jump();
 });
 
+// Thêm debounce cho sự kiện resize để tránh tính toán lại quá nhiều lần
 var resizeTimeout;
 addEvent(window, 'resize', function() {
     clearTimeout(resizeTimeout);
