@@ -58,7 +58,7 @@ var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
 
 // Các hằng số mới để điều chỉnh chiều cao nhảy và trọng lực dựa trên chấm đỏ
 var JUMP_HEIGHT_MULTIPLIER_OF_RED_DOT = 1.0; // Chiều cao nhảy gấp 2 lần đường kính chấm đỏ
-var TIME_TO_PEAK_JUMP_MS = 100; // Thời gian mong muốn để đạt đến đỉnh nhảy (miligiây)
+var TIME_TO_PEAK_JUMP_MS = 110; // Thời gian mong muốn để đạt đến đỉnh nhảy (miligiây)
 
 var FIXED_UPDATE_INTERVAL_MS = 10;
 
