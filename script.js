@@ -56,7 +56,7 @@ var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
 // Tốc độ di chuyển và trọng lực sẽ được tính dựa trên thời gian (pixel per millisecond)
 var MOVE_SPEED_RATIO_TO_FONT_HEIGHT_PER_MS = 0.03 / 16; // Chuyển đổi từ pixel/frame (16ms/frame) sang pixel/ms
 var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
-var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.35;
+var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.31;
 var GRAVITY_RATIO_TO_FONT_HEIGHT_PER_MS_SQUARED = 0.009 / (16 * 16); // Chuyển đổi từ pixel/frame^2 sang pixel/ms^2
 
 var moveSpeedPxPerMs;
