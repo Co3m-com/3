@@ -53,11 +53,10 @@ var blueDotY;
 var blueDotDirection = 1;
 
 var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
-// Tốc độ di chuyển và trọng lực sẽ được tính dựa trên thời gian (pixel per millisecond)
-var MOVE_SPEED_RATIO_TO_FONT_HEIGHT_PER_MS = 0.03 / 16; // Chuyển đổi từ pixel/frame (16ms/frame) sang pixel/ms
+var MOVE_SPEED_RATIO_TO_FONT_HEIGHT_PER_MS = 0.03 / 16;
 var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
 var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.303;
-var GRAVITY_RATIO_TO_FONT_HEIGHT_PER_MS_SQUARED = 0.009 / (16 * 16); // Chuyển đổi từ pixel/frame^2 sang pixel/ms^2
+var GRAVITY_RATIO_TO_FONT_HEIGHT_PER_MS_SQUARED = 0.009 / (16 * 16);
 
 var moveSpeedPxPerMs;
 var actualJumpHeightPx;
@@ -66,7 +65,7 @@ var movementLimitPx;
 var currentFontSizePx;
 
 var isJumping = false;
-var jumpVelocity = 0; // jumpVelocity sẽ là pixel/ms
+var jumpVelocity = 0;
 var blueDotBaseY;
 
 var redDotRadiusPx;
@@ -116,15 +115,13 @@ function adjustFontSize() {
     blueDotMoving.style.width = dotSizePx + 'px';
     blueDotMoving.style.height = dotSizePx + 'px';
 
-    // Cập nhật các biến tốc độ và trọng lực theo mili giây
     moveSpeedPxPerMs = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT_PER_MS;
     actualJumpHeightPx = currentFontSizePx * DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT;
     gravityPxPerMsSquared = currentFontSizePx * GRAVITY_RATIO_TO_FONT_HEIGHT_PER_MS_SQUARED;
     movementLimitPx = currentFontSizePx * MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT;
 
-    // Tính toán lại jumpVelocity ban đầu dựa trên gravityPxPerMsSquared
-    // v^2 = u^2 + 2as -> 0 = u^2 - 2gs_max -> u = sqrt(2gs_max)
     // jumpVelocity ban đầu (đi lên là âm)
+    // Cần tính lại mỗi khi adjustFontSize được gọi, để đảm bảo giá trị này đúng với kích thước mới
     jumpVelocity = -Math.sqrt(2 * gravityPxPerMsSquared * actualJumpHeightPx);
 }
 
@@ -148,7 +145,7 @@ function moveBlueDot(deltaTime) {
 function jump() {
     if (!isJumping) {
         isJumping = true;
-        // jumpVelocity được tính lại mỗi khi nhảy
+        // jumpVelocity được tính lại mỗi khi nhảy (đảm bảo nó đúng với các tham số hiện tại)
         jumpVelocity = -Math.sqrt(2 * gravityPxPerMsSquared * actualJumpHeightPx);
     }
 }
@@ -211,8 +208,7 @@ function gameLoop(timestamp) {
     var deltaTime = timestamp - lastTimestamp;
     lastTimestamp = timestamp;
 
-    // Giới hạn deltaTime để tránh các bước nhảy lớn sau khi tab được chuyển
-    var MAX_DELTA_TIME = 100; // Giới hạn 100ms
+    var MAX_DELTA_TIME = 100;
     if (deltaTime > MAX_DELTA_TIME) {
         deltaTime = MAX_DELTA_TIME;
     }
@@ -233,8 +229,9 @@ function initializeGame() {
     }
 
     lastTimestamp = 0;
+    isJumping = false; // Đảm bảo trạng thái nhảy được reset
 
-    adjustFontSize();
+    adjustFontSize(); // Tính toán lại tất cả các thông số phụ thuộc font size
 
     redDotRadiusPx = redDotStatic.offsetWidth / 2;
     blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
@@ -242,6 +239,7 @@ function initializeGame() {
     var redDotRect = redDotStatic.getBoundingClientRect();
     var textContainerRect = textContainer.getBoundingClientRect();
 
+    // Vị trí của chấm đỏ dựa trên container của nó
     redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
 
     leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
@@ -250,7 +248,8 @@ function initializeGame() {
     var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
     blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
 
-    blueDotX = redDotCenterXPx + redDotRadiusPx;
+    // Đặt lại vị trí ban đầu của blueDotMoving một cách nhất quán
+    blueDotX = redDotCenterXPx - blueDotRadiusPx; // Đặt nó ở vị trí trung tâm ban đầu, hoặc bạn có thể đặt nó ở một vị trí khởi đầu khác tùy ý
     blueDotY = blueDotBaseY;
 
     renderBlueDot();
@@ -278,32 +277,8 @@ addEvent(window, 'contextmenu', function(event) {
 });
 
 addEvent(window, 'resize', function() {
-    // Điều chỉnh kích thước và tính toán lại các giới hạn
-    adjustFontSize();
-
-    redDotRadiusPx = redDotStatic.offsetWidth / 2;
-    blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
-
-    var redDotRect = redDotStatic.getBoundingClientRect();
-    var textContainerRect = textContainer.getBoundingClientRect();
-    redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
-
-    leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
-    rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
-
-    var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
-    blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
-
-    // Cập nhật vị trí của blueDotX và blueDotY nếu chúng nằm ngoài giới hạn sau khi thay đổi kích thước
-    if (blueDotX > rightBoundaryPx) {
-        blueDotX = rightBoundaryPx;
-    } else if (blueDotX < leftBoundaryPx) {
-        blueDotX = leftBoundaryPx;
-    }
-
-    if (!isJumping) {
-        blueDotY = blueDotBaseY;
-    }
-    
-    renderBlueDot(); // Hiển thị lại ngay lập tức
+    // Để đảm bảo đồng nhất, chúng ta cần thực hiện lại một phần logic khởi tạo.
+    // Việc này sẽ tính toán lại kích thước và vị trí của các chấm dựa trên kích thước màn hình mới.
+    // Điều này sẽ làm game "đặt lại" một chút khi resize, nhưng đảm bảo độ khó nhất quán.
+    initializeGame();
 });
