@@ -85,7 +85,7 @@ var prevBlueDotX;
 var prevBlueDotY;
 
 // --- New variables for Golden Timing ---
-var GOLDEN_TIMING_WINDOW_MS = 3; // Time window in milliseconds before collision for a perfect jump
+var GOLDEN_TIMING_WINDOW_MS = 1; // Time window in milliseconds before collision for a perfect jump
 var isGoldenJumpActive = false;
 var timeToCollision = Infinity;
 // --- End New variables ---
