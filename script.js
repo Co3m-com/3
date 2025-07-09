@@ -64,7 +64,7 @@ var DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT = 1.0; // Bạn có thể điề
 
 // Điều chỉnh trọng lực để phù hợp với chiều cao nhảy mới.
 // GravityPxPerMsSquared cũng sẽ được tính dựa trên redDotStatic.offsetHeight
-var GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED = 0.031 / (16 * 16); // Điều chỉnh giá trị này để tinh chỉnh trọng lực
+var GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED = 0.035 / (16 * 16); // Điều chỉnh giá trị này để tinh chỉnh trọng lực
 
 var moveSpeedPxPerMs;
 var actualJumpHeightPx;
