@@ -56,21 +56,14 @@ var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
 var MOVE_SPEED_RATIO_TO_FONT_HEIGHT_PER_MS = 0.03 / 16;
 var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
 
-// NEW: Hằng số cho chiều cao nhảy dựa trên chiều cao của chấm đỏ
-// Giá trị này sẽ xác định chiều cao nhảy tính bằng "số lần chiều cao của chấm đỏ"
-// Ví dụ: 1.0 nghĩa là nhảy cao bằng 1 lần chiều cao chấm đỏ
-//       1.5 nghĩa là nhảy cao bằng 1.5 lần chiều cao chấm đỏ
-var DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT = 1.0; // Bạn có thể điều chỉnh giá trị này
-
-// Điều chỉnh trọng lực để phù hợp với chiều cao nhảy mới.
-// GravityPxPerMsSquared cũng sẽ được tính dựa trên redDotStatic.offsetHeight
-var GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED = 0.025 / (16 * 16); // Điều chỉnh giá trị này để tinh chỉnh trọng lực
+var DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT = 1.0;
+var GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED = 0.025 / (16 * 16);
 
 var moveSpeedPxPerMs;
 var actualJumpHeightPx;
 var gravityPxPerMsSquared;
 var movementLimitPx;
-var currentFontSizePx; // Vẫn cần cho kích thước chấm
+var currentFontSizePx;
 
 var isJumping = false;
 var jumpVelocity = 0;
@@ -85,6 +78,13 @@ var rightBoundaryPx;
 
 var animationFrameId = null;
 var lastTimestamp = 0;
+
+// --- BIẾN MỚI CHO AUTO CLICK ---
+var **isAutoClickActive** = false; // Đặt thành true để kích hoạt auto click
+var **autoClickTolerancePx** = 10; // Ngưỡng pixel từ tâm chấm đỏ để kích hoạt nhảy tự động
+var **minTimeBetweenAutoJumps** = 100; // Thời gian tối thiểu giữa các lần nhảy tự động (miligiay)
+var **lastAutoJumpTime** = 0; // Thời điểm cuối cùng auto click đã kích hoạt jump
+// ------------------------------
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -123,21 +123,14 @@ function adjustFontSize() {
     blueDotMoving.style.width = dotSizePx + 'px';
     blueDotMoving.style.height = dotSizePx + 'px';
 
-    // Tính toán lại các giá trị phụ thuộc vào kích thước thực tế của chấm đỏ sau khi nó đã được render
-    // LƯU Ý: redDotStatic.offsetHeight chỉ chính xác sau khi các style đã được áp dụng và browser đã render
-    // Tuy nhiên, vì adjustFontSize được gọi trong initializeGame và resize, nơi DOM đã sẵn sàng, nên nó sẽ hoạt động.
     var redDotActualHeight = redDotStatic.offsetHeight;
 
     moveSpeedPxPerMs = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT_PER_MS;
     movementLimitPx = currentFontSizePx * MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT;
 
-    // CHỈNH SỬA: Tính toán chiều cao nhảy thực tế dựa trên chiều cao chấm đỏ
     actualJumpHeightPx = redDotActualHeight * DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT;
-
-    // CHỈNH SỬA: Tính toán trọng lực dựa trên chiều cao chấm đỏ
     gravityPxPerMsSquared = redDotActualHeight * GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED;
 
-    // jumpVelocity ban đầu (đi lên là âm)
     jumpVelocity = -Math.sqrt(2 * gravityPxPerMsSquared * actualJumpHeightPx);
 }
 
@@ -161,7 +154,6 @@ function moveBlueDot(deltaTime) {
 function jump() {
     if (!isJumping) {
         isJumping = true;
-        // jumpVelocity được tính lại mỗi khi nhảy (đảm bảo nó đúng với các tham số hiện tại)
         jumpVelocity = -Math.sqrt(2 * gravityPxPerMsSquared * actualJumpHeightPx);
     }
 }
@@ -233,6 +225,22 @@ function gameLoop(timestamp) {
     applyGravity(deltaTime);
     checkCollision();
 
+    // --- LOGIC AUTO CLICK MỚI ---
+    if (isAutoClickActive && !isJumping) { // Chỉ thực hiện auto click khi không đang nhảy
+        var redCenterX = redDotStatic.offsetLeft + (redDotStatic.offsetWidth / 2);
+        var blueCenterX = blueDotX + blueDotRadiusPx;
+
+        // Kiểm tra nếu chấm xanh đang ở gần tâm của chấm đỏ tĩnh
+        if (Math.abs(blueCenterX - redCenterX) <= autoClickTolerancePx) {
+            // Kiểm tra xem đã đủ thời gian chờ giữa các lần nhảy tự động chưa
+            if ((timestamp - lastAutoJumpTime) >= minTimeBetweenAutoJumps) {
+                jump();
+                lastAutoJumpTime = timestamp; // Cập nhật thời điểm nhảy tự động
+            }
+        }
+    }
+    // ----------------------------
+
     renderBlueDot();
 
     animationFrameId = window.requestAnimationFrame(gameLoop);
@@ -245,9 +253,9 @@ function initializeGame() {
     }
 
     lastTimestamp = 0;
-    isJumping = false; // Đảm bảo trạng thái nhảy được reset
+    isJumping = false;
 
-    adjustFontSize(); // Tính toán lại tất cả các thông số phụ thuộc font size và kích thước chấm đỏ
+    adjustFontSize();
 
     redDotRadiusPx = redDotStatic.offsetWidth / 2;
     blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
@@ -255,7 +263,6 @@ function initializeGame() {
     var redDotRect = redDotStatic.getBoundingClientRect();
     var textContainerRect = textContainer.getBoundingClientRect();
 
-    // Vị trí của chấm đỏ dựa trên container của nó
     redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
 
     leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
@@ -264,7 +271,6 @@ function initializeGame() {
     var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
     blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
 
-    // Đặt lại vị trí ban đầu của blueDotMoving một cách nhất quán
     blueDotX = redDotCenterXPx - blueDotRadiusPx;
     blueDotY = blueDotBaseY;
 
@@ -272,6 +278,18 @@ function initializeGame() {
 
     animationFrameId = window.requestAnimationFrame(gameLoop);
 }
+
+// --- HÀM MỚI ĐỂ ĐIỀU KHIỂN AUTO CLICK TỪ BÊN NGOÀI (HOẶC GIAO DIỆN) ---
+function **toggleAutoClick**(active) {
+    isAutoClickActive = active;
+    if (active) {
+        console.log("Auto Click đã BẬT.");
+        lastAutoJumpTime = performance.now(); // Đảm bảo lần nhảy đầu tiên có thể xảy ra ngay
+    } else {
+        console.log("Auto Click đã TẮT.");
+    }
+}
+// --------------------------------------------------------------------
 
 addEvent(window, 'load', initializeGame);
 
@@ -295,3 +313,9 @@ addEvent(window, 'contextmenu', function(event) {
 addEvent(window, 'resize', function() {
     initializeGame();
 });
+
+// Bạn có thể thêm một nút trong HTML để bật/tắt auto click, ví dụ:
+/*
+    <button onclick="toggleAutoClick(true)">Bật Auto Click</button>
+    <button onclick="toggleAutoClick(false)">Tắt Auto Click</button>
+*/
