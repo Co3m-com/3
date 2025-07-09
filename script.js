@@ -53,21 +53,20 @@ var blueDotY;
 var blueDotDirection = 1;
 
 var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
-var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.002;
+// Tốc độ di chuyển và trọng lực sẽ được tính dựa trên thời gian (pixel per millisecond)
+var MOVE_SPEED_RATIO_TO_FONT_HEIGHT_PER_MS = 0.002 / 16; // Chuyển đổi từ pixel/frame (16ms/frame) sang pixel/ms
 var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
 var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.29;
-var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.00003;
+var GRAVITY_RATIO_TO_FONT_HEIGHT_PER_MS_SQUARED = 0.00003 / (16 * 16); // Chuyển đổi từ pixel/frame^2 sang pixel/ms^2
 
-var FIXED_UPDATE_INTERVAL_MS = 10;
-
-var moveSpeedPx;
+var moveSpeedPxPerMs;
 var actualJumpHeightPx;
-var gravityPx;
+var gravityPxPerMsSquared;
 var movementLimitPx;
 var currentFontSizePx;
 
 var isJumping = false;
-var jumpVelocity = 0;
+var jumpVelocity = 0; // jumpVelocity sẽ là pixel/ms
 var blueDotBaseY;
 
 var redDotRadiusPx;
@@ -79,16 +78,6 @@ var rightBoundaryPx;
 
 var animationFrameId = null;
 var lastTimestamp = 0;
-var accumulatedTime = 0;
-
-var prevBlueDotX;
-var prevBlueDotY;
-
-// --- New variables for Golden Timing ---
-var GOLDEN_TIMING_WINDOW_MS = 1; // Time window in milliseconds before collision for a perfect jump
-var isGoldenJumpActive = false;
-var timeToCollision = Infinity;
-// --- End New variables ---
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -127,22 +116,25 @@ function adjustFontSize() {
     blueDotMoving.style.width = dotSizePx + 'px';
     blueDotMoving.style.height = dotSizePx + 'px';
 
-    moveSpeedPx = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT;
+    // Cập nhật các biến tốc độ và trọng lực theo mili giây
+    moveSpeedPxPerMs = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT_PER_MS;
     actualJumpHeightPx = currentFontSizePx * DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT;
-    gravityPx = currentFontSizePx * GRAVITY_RATIO_TO_FONT_HEIGHT;
+    gravityPxPerMsSquared = currentFontSizePx * GRAVITY_RATIO_TO_FONT_HEIGHT_PER_MS_SQUARED;
     movementLimitPx = currentFontSizePx * MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT;
+
+    // Tính toán lại jumpVelocity ban đầu dựa trên gravityPxPerMsSquared
+    // v^2 = u^2 + 2as -> 0 = u^2 - 2gs_max -> u = sqrt(2gs_max)
+    // jumpVelocity ban đầu (đi lên là âm)
+    jumpVelocity = -Math.sqrt(2 * gravityPxPerMsSquared * actualJumpHeightPx);
 }
 
-function renderBlueDot(alpha) {
-    var interpolatedX = prevBlueDotX + (blueDotX - prevBlueDotX) * alpha;
-    var interpolatedY = prevBlueDotY + (blueDotY - prevBlueDotY) * alpha;
-
-    blueDotMoving.style.left = interpolatedX + 'px';
-    blueDotMoving.style.top = interpolatedY + 'px';
+function renderBlueDot() {
+    blueDotMoving.style.left = blueDotX + 'px';
+    blueDotMoving.style.top = blueDotY + 'px';
 }
 
-function moveBlueDotFixed(fixedDeltaTime) {
-    blueDotX += moveSpeedPx * blueDotDirection * fixedDeltaTime;
+function moveBlueDot(deltaTime) {
+    blueDotX += moveSpeedPxPerMs * blueDotDirection * deltaTime;
 
     if (blueDotX > rightBoundaryPx) {
         blueDotX = rightBoundaryPx;
@@ -155,31 +147,21 @@ function moveBlueDotFixed(fixedDeltaTime) {
 
 function jump() {
     if (!isJumping) {
-        // Check for golden timing
-        if (timeToCollision > 0 && timeToCollision <= GOLDEN_TIMING_WINDOW_MS && blueDotY >= blueDotBaseY) {
-            isJumping = true;
-            isGoldenJumpActive = true;
-            jumpVelocity = -Math.sqrt(2 * gravityPx * (actualJumpHeightPx * 1.5)); // Slightly higher jump for perfect timing
-            redDotStatic.style.border = '2px solid green'; // Indicate a perfect jump
-        } else {
-            isJumping = true;
-            isGoldenJumpActive = false;
-            jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
-        }
+        isJumping = true;
+        // jumpVelocity được tính lại mỗi khi nhảy
+        jumpVelocity = -Math.sqrt(2 * gravityPxPerMsSquared * actualJumpHeightPx);
     }
 }
 
-function applyGravityFixed(fixedDeltaTime) {
+function applyGravity(deltaTime) {
     if (isJumping) {
-        blueDotY += jumpVelocity * fixedDeltaTime;
-        jumpVelocity += gravityPx * fixedDeltaTime;
+        blueDotY += jumpVelocity * deltaTime;
+        jumpVelocity += gravityPxPerMsSquared * deltaTime;
 
         if (blueDotY >= blueDotBaseY) {
             blueDotY = blueDotBaseY;
             isJumping = false;
             jumpVelocity = 0;
-            isGoldenJumpActive = false; // Reset golden jump status
-            redDotStatic.style.border = 'none'; // Reset border
         }
     } else {
         var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
@@ -201,43 +183,23 @@ function checkCollision() {
 
     var minDistance = redDotRadiusPx + blueDotRadiusPx;
 
-    // Calculate time to collision
-    if (!isJumping) {
-        var relativeSpeed = Math.abs(moveSpeedPx);
-        var distanceToCollision = Math.abs(dx) - minDistance;
-        if (distanceToCollision < 0) distanceToCollision = 0; // Already colliding or very close
-        timeToCollision = (relativeSpeed > 0) ? (distanceToCollision / relativeSpeed) : Infinity;
-    } else {
-        timeToCollision = Infinity; // No collision check when jumping
-    }
-
-
     if (distance < minDistance) {
-        if (isGoldenJumpActive) {
-            // If it's a golden jump, we let it pass through
-            redDotStatic.style.border = '2px solid green';
-            return false; // No actual collision response
+        var overlap = minDistance - distance;
+        var angle = Math.atan2(dy, dx);
+
+        blueDotX += Math.cos(angle) * overlap;
+        blueDotY += Math.sin(angle) * overlap;
+
+        if (blueDotX + blueDotRadiusPx > redDotCenterXPx) {
+            blueDotDirection = 1;
         } else {
-            var overlap = minDistance - distance;
-            var angle = Math.atan2(dy, dx);
-
-            blueDotX += Math.cos(angle) * overlap;
-            blueDotY += Math.sin(angle) * overlap;
-
-            // Adjust direction based on collision side relative to red dot center
-            if (blueDotX + blueDotRadiusPx > redDotCenterXPx) {
-                blueDotDirection = 1;
-            } else {
-                blueDotDirection = -1;
-            }
-
-            redDotStatic.style.border = '2px solid red'; // Indicate a regular collision
-            return true;
+            blueDotDirection = -1;
         }
+
+        redDotStatic.style.border = '2px solid red';
+        return true;
     } else {
-        if (!isGoldenJumpActive) { // Only reset border if not in a golden jump state
-            redDotStatic.style.border = 'none';
-        }
+        redDotStatic.style.border = 'none';
         return false;
     }
 }
@@ -246,28 +208,20 @@ function gameLoop(timestamp) {
     if (!lastTimestamp) {
         lastTimestamp = timestamp;
     }
-    var frameDeltaTime = timestamp - lastTimestamp;
+    var deltaTime = timestamp - lastTimestamp;
     lastTimestamp = timestamp;
 
-    var MAX_FRAME_DELTA = FIXED_UPDATE_INTERVAL_MS * 5;
-    if (frameDeltaTime > MAX_FRAME_DELTA) {
-        frameDeltaTime = MAX_FRAME_DELTA;
+    // Giới hạn deltaTime để tránh các bước nhảy lớn sau khi tab được chuyển
+    var MAX_DELTA_TIME = 100; // Giới hạn 100ms
+    if (deltaTime > MAX_DELTA_TIME) {
+        deltaTime = MAX_DELTA_TIME;
     }
 
-    accumulatedTime += frameDeltaTime;
+    moveBlueDot(deltaTime);
+    applyGravity(deltaTime);
+    checkCollision();
 
-    prevBlueDotX = blueDotX;
-    prevBlueDotY = blueDotY;
-
-    while (accumulatedTime >= FIXED_UPDATE_INTERVAL_MS) {
-        moveBlueDotFixed(FIXED_UPDATE_INTERVAL_MS);
-        applyGravityFixed(FIXED_UPDATE_INTERVAL_MS);
-        checkCollision(); // Check collision and update timeToCollision
-        accumulatedTime -= FIXED_UPDATE_INTERVAL_MS;
-    }
-
-    var alpha = accumulatedTime / FIXED_UPDATE_INTERVAL_MS;
-    renderBlueDot(alpha);
+    renderBlueDot();
 
     animationFrameId = window.requestAnimationFrame(gameLoop);
 }
@@ -279,8 +233,6 @@ function initializeGame() {
     }
 
     lastTimestamp = 0;
-    accumulatedTime = 0;
-    timeToCollision = Infinity; // Reset time to collision
 
     adjustFontSize();
 
@@ -301,10 +253,7 @@ function initializeGame() {
     blueDotX = redDotCenterXPx + redDotRadiusPx;
     blueDotY = blueDotBaseY;
 
-    prevBlueDotX = blueDotX;
-    prevBlueDotY = blueDotY;
-
-    renderBlueDot(1);
+    renderBlueDot();
 
     animationFrameId = window.requestAnimationFrame(gameLoop);
 }
@@ -329,6 +278,7 @@ addEvent(window, 'contextmenu', function(event) {
 });
 
 addEvent(window, 'resize', function() {
+    // Điều chỉnh kích thước và tính toán lại các giới hạn
     adjustFontSize();
 
     redDotRadiusPx = redDotStatic.offsetWidth / 2;
@@ -344,22 +294,16 @@ addEvent(window, 'resize', function() {
     var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
     blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
 
-    if (!isJumping) {
-        if (blueDotX > rightBoundaryPx) {
-            blueDotX = rightBoundaryPx;
-        } else if (blueDotX < leftBoundaryPx) {
-            blueDotX = leftBoundaryPx;
-        }
-        blueDotY = blueDotBaseY;
-    } else {
-        if (blueDotX > rightBoundaryPx) {
-            blueDotX = rightBoundaryPx;
-        } else if (blueDotX < leftBoundaryPx) {
-            blueDotX = leftBoundaryPx;
-        }
+    // Cập nhật vị trí của blueDotX và blueDotY nếu chúng nằm ngoài giới hạn sau khi thay đổi kích thước
+    if (blueDotX > rightBoundaryPx) {
+        blueDotX = rightBoundaryPx;
+    } else if (blueDotX < leftBoundaryPx) {
+        blueDotX = leftBoundaryPx;
     }
-    prevBlueDotX = blueDotX;
-    prevBlueDotY = blueDotY;
 
-    renderBlueDot(1);
+    if (!isJumping) {
+        blueDotY = blueDotBaseY;
+    }
+    
+    renderBlueDot(); // Hiển thị lại ngay lập tức
 });
