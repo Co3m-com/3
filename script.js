@@ -79,12 +79,11 @@ var rightBoundaryPx;
 var animationFrameId = null;
 var lastTimestamp = 0;
 
-// THÊM MỚI: Ngưỡng để kích hoạt nhảy.
-// Đây là khoảng cách từ tâm chấm đỏ mà khi chấm xanh cách tâm chấm đỏ một khoảng bằng hoặc nhỏ hơn, nó sẽ nhảy.
-// Bạn có thể điều chỉnh giá trị này để tinh chỉnh thời điểm nhảy.
-// Ví dụ: 0.5 * redDotStatic.offsetWidth nghĩa là khi tâm chấm xanh cách tâm chấm đỏ 0.5 lần chiều rộng chấm đỏ.
-var JUMP_TRIGGER_DISTANCE_FROM_RED_CENTER_X_RATIO = 0.6;
-var jumpTriggerPx; // Sẽ được tính toán dựa trên redDotStatic.offsetWidth
+var jumpScheduled = false;
+var autoJumpTimeoutId = null;
+
+// THÊM MỚI: Biến để lưu trữ thông tin về chướng ngại vật đã va chạm
+var lastCollidedObstacleInfo = null;
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -97,7 +96,7 @@ function adjustFontSize() {
     comText.style.fontSize = TEST_FONT_SIZE + 'px';
 
     var testDotSizePx = TEST_FONT_SIZE * DOT_RATIO_TO_FONT_HEIGHT;
-    redDotStatic.style.width = testDotSizePx + 'px';
+    redDotStatic.style.width = testDotDotSizePx + 'px';
     redDotStatic.style.height = testDotSizePx + 'px';
 
     var textContainerWidthAtTestSize = textContainer.offsetWidth;
@@ -124,7 +123,7 @@ function adjustFontSize() {
     blueDotMoving.style.height = dotSizePx + 'px';
 
     var redDotActualHeight = redDotStatic.offsetHeight;
-    var redDotActualWidth = redDotStatic.offsetWidth; // Lấy chiều rộng thực tế
+    var redDotActualWidth = redDotStatic.offsetWidth;
 
     moveSpeedPxPerMs = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT_PER_MS;
     movementLimitPx = currentFontSizePx * MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT;
@@ -132,13 +131,7 @@ function adjustFontSize() {
     actualJumpHeightPx = redDotActualHeight * DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT;
     gravityPxPerMsSquared = redDotActualHeight * GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED;
 
-    // jumpVelocity ban đầu (đi lên là âm)
     jumpVelocity = -Math.sqrt(2 * gravityPxPerMsSquared * actualJumpHeightPx);
-
-    // THÊM MỚI: Tính toán ngưỡng nhảy dựa trên chiều rộng của chấm đỏ
-    // jumpTriggerPx = redDotActualWidth * JUMP_TRIGGER_DISTANCE_FROM_RED_CENTER_X_RATIO;
-    // Điều chỉnh để tính cả bán kính chấm xanh, nghĩa là khi cạnh của blueDot đủ gần
-    jumpTriggerPx = (redDotActualWidth / 2) + (blueDotMoving.offsetWidth / 2) + (redDotActualWidth * JUMP_TRIGGER_DISTANCE_FROM_RED_CENTER_X_RATIO);
 }
 
 function renderBlueDot() {
@@ -161,7 +154,32 @@ function moveBlueDot(deltaTime) {
 function jump() {
     if (!isJumping) {
         isJumping = true;
+        // jumpVelocity được tính lại mỗi khi nhảy (đảm bảo nó đúng với các tham số hiện tại)
         jumpVelocity = -Math.sqrt(2 * gravityPxPerMsSquared * actualJumpHeightPx);
+
+        // THÊM MỚI: Điều chỉnh vị trí X của chấm xanh ngay trước khi nhảy
+        // để đảm bảo nó ở vị trí thuận lợi nhất để nhảy qua chướng ngại vật
+        if (lastCollidedObstacleInfo) {
+            var redDotLeft = lastCollidedObstacleInfo.left;
+            var redDotRight = lastCollidedObstacleInfo.right;
+            var blueDotWidth = blueDotMoving.offsetWidth;
+
+            // Nếu blueDot bị bật sang trái của chướng ngại vật
+            if (blueDotX + blueDotWidth / 2 < redDotLeft + (redDotRight - redDotLeft) / 2) {
+                // Đặt blueDot ở vị trí ngay trước chướng ngại vật
+                blueDotX = redDotLeft - blueDotWidth - 5; // -5px để tạo khoảng cách nhỏ
+            } else { // Nếu blueDot bị bật sang phải của chướng ngại vật
+                // Đặt blueDot ở vị trí ngay sau chướng ngại vật (nếu hướng đi cho phép)
+                blueDotX = redDotRight + 5; // +5px để tạo khoảng cách nhỏ
+            }
+            // Đảm bảo hướng đi khớp với vị trí mới
+            if (blueDotX + blueDotWidth / 2 < redDotCenterXPx) {
+                 blueDotDirection = 1; // Đi về phía chướng ngại vật
+            } else {
+                 blueDotDirection = -1; // Đi về phía chướng ngại vật (từ phía bên kia)
+            }
+            lastCollidedObstacleInfo = null; // Xóa thông tin chướng ngại vật sau khi đã sử dụng
+        }
     }
 }
 
@@ -196,11 +214,51 @@ function checkCollision() {
     var minDistance = redDotRadiusPx + blueDotRadiusPx;
 
     if (distance < minDistance) {
-        // Có va chạm, không cần đẩy ra nếu chỉ nhảy qua
+        var overlap = minDistance - distance;
+        var angle = Math.atan2(dy, dx);
+
+        // Giữ lại logic đẩy ra để không bị đè lên
+        blueDotX += Math.cos(angle) * overlap;
+        blueDotY += Math.sin(angle) * overlap;
+
+        // Giữ lại logic đổi hướng khi va chạm
+        if (blueDotX + blueDotRadiusPx > redDotCenterXPx) {
+            blueDotDirection = 1;
+        } else {
+            blueDotDirection = -1;
+        }
+
         redDotStatic.style.border = '2px solid red';
+
+        // THÊM MỚI: Lưu thông tin chướng ngại vật hiện tại
+        lastCollidedObstacleInfo = {
+            left: redDotStatic.offsetLeft,
+            right: redDotStatic.offsetLeft + redDotStatic.offsetWidth,
+            center: redDotCenterXPx
+        };
+
+        // Lập lịch nhảy sau 100ms nếu chưa nhảy và chưa có lịch nhảy
+        if (!isJumping && !jumpScheduled) {
+            jumpScheduled = true;
+            // Xóa bất kỳ lịch nhảy nào đang chờ để tránh nhảy liên tục nếu va chạm kéo dài
+            if (autoJumpTimeoutId) {
+                clearTimeout(autoJumpTimeoutId);
+            }
+            autoJumpTimeoutId = setTimeout(function() {
+                jump();
+                jumpScheduled = false; // Reset sau khi nhảy được kích hoạt
+                autoJumpTimeoutId = null; // Xóa ID timeout
+            }, 100); // Nhảy sau 100 miligiây
+        }
         return true;
     } else {
         redDotStatic.style.border = 'none';
+        // Nếu không còn va chạm, hủy lịch nhảy nếu có
+        if (jumpScheduled && autoJumpTimeoutId) {
+            clearTimeout(autoJumpTimeoutId);
+            jumpScheduled = false;
+            autoJumpTimeoutId = null;
+        }
         return false;
     }
 }
@@ -217,32 +275,9 @@ function gameLoop(timestamp) {
         deltaTime = MAX_DELTA_TIME;
     }
 
-    // THÊM MỚI: Logic để nhảy khi gần chướng ngại vật
-    if (!isJumping) {
-        var blueDotRightEdge = blueDotX + (blueDotRadiusPx * 2);
-        var blueDotLeftEdge = blueDotX;
-        var redDotLeftEdge = redDotStatic.offsetLeft;
-        var redDotRightEdge = redDotStatic.offsetLeft + redDotStatic.offsetWidth;
-
-        // Tính khoảng cách từ cạnh gần nhất của blueDot đến cạnh gần nhất của redDot
-        var distanceToRed;
-        if (blueDotDirection === 1) { // Đang đi sang phải
-            distanceToRed = redDotLeftEdge - blueDotRightEdge;
-        } else { // Đang đi sang trái
-            distanceToRed = blueDotLeftEdge - redDotRightEdge;
-        }
-
-        // Kích hoạt nhảy khi blueDot đủ gần chướng ngại vật và đang đi về phía nó
-        // Giá trị 50 ở đây là ngưỡng bạn có thể điều chỉnh
-        if (distanceToRed < 50 && distanceToRed > -blueDotMoving.offsetWidth) {
-             jump();
-        }
-    }
-
-
     moveBlueDot(deltaTime);
     applyGravity(deltaTime);
-    checkCollision(); // Kiểm tra va chạm để đổi hướng, không để đẩy ra nữa
+    checkCollision();
 
     renderBlueDot();
 
@@ -254,6 +289,13 @@ function initializeGame() {
         window.cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
+
+    if (autoJumpTimeoutId) {
+        clearTimeout(autoJumpTimeoutId);
+        autoJumpTimeoutId = null;
+    }
+    jumpScheduled = false;
+    lastCollidedObstacleInfo = null; // Reset thông tin chướng ngại vật
 
     lastTimestamp = 0;
     isJumping = false;
@@ -287,7 +329,7 @@ addEvent(window, 'resize', function() {
     initializeGame();
 });
 
-// Loại bỏ các sự kiện tương tác của người dùng nếu bạn muốn hoàn toàn tự động
+// Bạn có thể bỏ chú thích các sự kiện này nếu muốn người dùng vẫn có thể nhảy thủ công
 // addEvent(fullscreenOverlay, 'mousedown', jump);
 // addEvent(fullscreenOverlay, 'touchstart', jump);
 // addEvent(window, 'keydown', function(event) {
