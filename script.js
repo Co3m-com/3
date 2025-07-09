@@ -56,21 +56,14 @@ var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
 var MOVE_SPEED_RATIO_TO_FONT_HEIGHT_PER_MS = 0.03 / 16;
 var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
 
-// NEW: Hằng số cho chiều cao nhảy dựa trên chiều cao của chấm đỏ
-// Giá trị này sẽ xác định chiều cao nhảy tính bằng "số lần chiều cao của chấm đỏ"
-// Ví dụ: 1.0 nghĩa là nhảy cao bằng 1 lần chiều cao chấm đỏ
-//       1.5 nghĩa là nhảy cao bằng 1.5 lần chiều cao chấm đỏ
-var DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT = 1.0; // Bạn có thể điều chỉnh giá trị này
-
-// Điều chỉnh trọng lực để phù hợp với chiều cao nhảy mới.
-// GravityPxPerMsSquared cũng sẽ được tính dựa trên redDotStatic.offsetHeight
-var GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED = 0.025 / (16 * 16); // Điều chỉnh giá trị này để tinh chỉnh trọng lực
+var DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT = 1.0;
+var GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED = 0.025 / (16 * 16);
 
 var moveSpeedPxPerMs;
 var actualJumpHeightPx;
 var gravityPxPerMsSquared;
 var movementLimitPx;
-var currentFontSizePx; // Vẫn cần cho kích thước chấm
+var currentFontSizePx;
 
 var isJumping = false;
 var jumpVelocity = 0;
@@ -86,10 +79,12 @@ var rightBoundaryPx;
 var animationFrameId = null;
 var lastTimestamp = 0;
 
-// THÊM MỚI: Biến để lưu trữ ID của timer tự động nhảy
-var autoJumpTimerId = null;
-// THÊM MỚI: Khoảng thời gian giữa các lần nhảy tự động
-var AUTO_JUMP_INTERVAL_MS = 100;
+// THÊM MỚI: Ngưỡng để kích hoạt nhảy.
+// Đây là khoảng cách từ tâm chấm đỏ mà khi chấm xanh cách tâm chấm đỏ một khoảng bằng hoặc nhỏ hơn, nó sẽ nhảy.
+// Bạn có thể điều chỉnh giá trị này để tinh chỉnh thời điểm nhảy.
+// Ví dụ: 0.5 * redDotStatic.offsetWidth nghĩa là khi tâm chấm xanh cách tâm chấm đỏ 0.5 lần chiều rộng chấm đỏ.
+var JUMP_TRIGGER_DISTANCE_FROM_RED_CENTER_X_RATIO = 0.6;
+var jumpTriggerPx; // Sẽ được tính toán dựa trên redDotStatic.offsetWidth
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -128,22 +123,22 @@ function adjustFontSize() {
     blueDotMoving.style.width = dotSizePx + 'px';
     blueDotMoving.style.height = dotSizePx + 'px';
 
-    // Tính toán lại các giá trị phụ thuộc vào kích thước thực tế của chấm đỏ sau khi nó đã được render
-    // LƯU Ý: redDotStatic.offsetHeight chỉ chính xác sau khi các style đã được áp dụng và browser đã render
-    // Tuy nhiên, vì adjustFontSize được gọi trong initializeGame và resize, nơi DOM đã sẵn sàng, nên nó sẽ hoạt động.
     var redDotActualHeight = redDotStatic.offsetHeight;
+    var redDotActualWidth = redDotStatic.offsetWidth; // Lấy chiều rộng thực tế
 
     moveSpeedPxPerMs = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT_PER_MS;
     movementLimitPx = currentFontSizePx * MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT;
 
-    // CHỈNH SỬA: Tính toán chiều cao nhảy thực tế dựa trên chiều cao chấm đỏ
     actualJumpHeightPx = redDotActualHeight * DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT;
-
-    // CHỈNH SỬA: Tính toán trọng lực dựa trên chiều cao chấm đỏ
     gravityPxPerMsSquared = redDotActualHeight * GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED;
 
     // jumpVelocity ban đầu (đi lên là âm)
     jumpVelocity = -Math.sqrt(2 * gravityPxPerMsSquared * actualJumpHeightPx);
+
+    // THÊM MỚI: Tính toán ngưỡng nhảy dựa trên chiều rộng của chấm đỏ
+    // jumpTriggerPx = redDotActualWidth * JUMP_TRIGGER_DISTANCE_FROM_RED_CENTER_X_RATIO;
+    // Điều chỉnh để tính cả bán kính chấm xanh, nghĩa là khi cạnh của blueDot đủ gần
+    jumpTriggerPx = (redDotActualWidth / 2) + (blueDotMoving.offsetWidth / 2) + (redDotActualWidth * JUMP_TRIGGER_DISTANCE_FROM_RED_CENTER_X_RATIO);
 }
 
 function renderBlueDot() {
@@ -166,7 +161,6 @@ function moveBlueDot(deltaTime) {
 function jump() {
     if (!isJumping) {
         isJumping = true;
-        // jumpVelocity được tính lại mỗi khi nhảy (đảm bảo nó đúng với các tham số hiện tại)
         jumpVelocity = -Math.sqrt(2 * gravityPxPerMsSquared * actualJumpHeightPx);
     }
 }
@@ -202,18 +196,7 @@ function checkCollision() {
     var minDistance = redDotRadiusPx + blueDotRadiusPx;
 
     if (distance < minDistance) {
-        var overlap = minDistance - distance;
-        var angle = Math.atan2(dy, dx);
-
-        blueDotX += Math.cos(angle) * overlap;
-        blueDotY += Math.sin(angle) * overlap;
-
-        if (blueDotX + blueDotRadiusPx > redDotCenterXPx) {
-            blueDotDirection = 1;
-        } else {
-            blueDotDirection = -1;
-        }
-
+        // Có va chạm, không cần đẩy ra nếu chỉ nhảy qua
         redDotStatic.style.border = '2px solid red';
         return true;
     } else {
@@ -234,9 +217,32 @@ function gameLoop(timestamp) {
         deltaTime = MAX_DELTA_TIME;
     }
 
+    // THÊM MỚI: Logic để nhảy khi gần chướng ngại vật
+    if (!isJumping) {
+        var blueDotRightEdge = blueDotX + (blueDotRadiusPx * 2);
+        var blueDotLeftEdge = blueDotX;
+        var redDotLeftEdge = redDotStatic.offsetLeft;
+        var redDotRightEdge = redDotStatic.offsetLeft + redDotStatic.offsetWidth;
+
+        // Tính khoảng cách từ cạnh gần nhất của blueDot đến cạnh gần nhất của redDot
+        var distanceToRed;
+        if (blueDotDirection === 1) { // Đang đi sang phải
+            distanceToRed = redDotLeftEdge - blueDotRightEdge;
+        } else { // Đang đi sang trái
+            distanceToRed = blueDotLeftEdge - redDotRightEdge;
+        }
+
+        // Kích hoạt nhảy khi blueDot đủ gần chướng ngại vật và đang đi về phía nó
+        // Giá trị 50 ở đây là ngưỡng bạn có thể điều chỉnh
+        if (distanceToRed < 50 && distanceToRed > -blueDotMoving.offsetWidth) {
+             jump();
+        }
+    }
+
+
     moveBlueDot(deltaTime);
     applyGravity(deltaTime);
-    checkCollision();
+    checkCollision(); // Kiểm tra va chạm để đổi hướng, không để đẩy ra nữa
 
     renderBlueDot();
 
@@ -249,16 +255,10 @@ function initializeGame() {
         animationFrameId = null;
     }
 
-    // THÊM MỚI: Xóa timer tự động nhảy cũ nếu có
-    if (autoJumpTimerId) {
-        clearInterval(autoJumpTimerId);
-        autoJumpTimerId = null;
-    }
-
     lastTimestamp = 0;
-    isJumping = false; // Đảm bảo trạng thái nhảy được reset
+    isJumping = false;
 
-    adjustFontSize(); // Tính toán lại tất cả các thông số phụ thuộc font size và kích thước chấm đỏ
+    adjustFontSize();
 
     redDotRadiusPx = redDotStatic.offsetWidth / 2;
     blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
@@ -266,7 +266,6 @@ function initializeGame() {
     var redDotRect = redDotStatic.getBoundingClientRect();
     var textContainerRect = textContainer.getBoundingClientRect();
 
-    // Vị trí của chấm đỏ dựa trên container của nó
     redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
 
     leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
@@ -275,23 +274,20 @@ function initializeGame() {
     var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
     blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
 
-    // Đặt lại vị trí ban đầu của blueDotMoving một cách nhất quán
     blueDotX = redDotCenterXPx - blueDotRadiusPx;
     blueDotY = blueDotBaseY;
 
     renderBlueDot();
 
     animationFrameId = window.requestAnimationFrame(gameLoop);
-
-    // THÊM MỚI: Bắt đầu timer tự động nhảy
-    autoJumpTimerId = setInterval(function() {
-        jump();
-    }, AUTO_JUMP_INTERVAL_MS);
 }
 
 addEvent(window, 'load', initializeGame);
+addEvent(window, 'resize', function() {
+    initializeGame();
+});
 
-// XÓA BỎ HOẶC GHI CHÚ CÁC SỰ KIỆN TƯƠNG TÁC CỦA NGƯỜI DÙNG NẾU KHÔNG CẦN NỮA
+// Loại bỏ các sự kiện tương tác của người dùng nếu bạn muốn hoàn toàn tự động
 // addEvent(fullscreenOverlay, 'mousedown', jump);
 // addEvent(fullscreenOverlay, 'touchstart', jump);
 // addEvent(window, 'keydown', function(event) {
@@ -306,7 +302,3 @@ addEvent(window, 'load', initializeGame);
 //     }
 //     jump();
 // });
-
-addEvent(window, 'resize', function() {
-    initializeGame();
-});
