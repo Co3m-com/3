@@ -60,11 +60,11 @@ var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
 // Giá trị này sẽ xác định chiều cao nhảy tính bằng "số lần chiều cao của chấm đỏ"
 // Ví dụ: 1.0 nghĩa là nhảy cao bằng 1 lần chiều cao chấm đỏ
 //       1.5 nghĩa là nhảy cao bằng 1.5 lần chiều cao chấm đỏ
-var DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT = 1.2; // Bạn có thể điều chỉnh giá trị này
+var DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT = 1.0; // Bạn có thể điều chỉnh giá trị này
 
 // Điều chỉnh trọng lực để phù hợp với chiều cao nhảy mới.
 // GravityPxPerMsSquared cũng sẽ được tính dựa trên redDotStatic.offsetHeight
-var GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED = 0.009 / (16 * 16); // Điều chỉnh giá trị này để tinh chỉnh trọng lực
+var GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED = 0.02 / (16 * 16); // Điều chỉnh giá trị này để tinh chỉnh trọng lực
 
 var moveSpeedPxPerMs;
 var actualJumpHeightPx;
