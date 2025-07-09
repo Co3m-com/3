@@ -1,44 +1,44 @@
 (function() {
-var lastTime = 0;
-var vendors = ['webkit', 'moz'];
-var x;
-for(x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-window.requestAnimationFrame = window['webkitRequestAnimationFrame'];
-window.cancelAnimationFrame =
-window['webkitCancelAnimationFrame'] || window['webkitCancelRequestAnimationFrame'];
-}
+    var lastTime = 0;
+    var vendors = ['webkit', 'moz'];
+    var x;
+    for(x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+        window.requestAnimationFrame = window['webkitRequestAnimationFrame'];
+        window.cancelAnimationFrame =
+            window['webkitCancelAnimationFrame'] || window['webkitCancelRequestAnimationFrame'];
+    }
 
-if (!window.requestAnimationFrame) {
-window.requestAnimationFrame = function(callback, element) {
-var currTime = new Date().getTime();
-var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-var id = window.setTimeout(function() { callback(currTime + timeToCall); },
-timeToCall);
-lastTime = currTime + timeToCall;
-return id;
-};
-}
+    if (!window.requestAnimationFrame) {
+        window.requestAnimationFrame = function(callback, element) {
+            var currTime = new Date().getTime();
+            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+            var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+                timeToCall);
+            lastTime = currTime + timeToCall;
+            return id;
+        };
+    }
 
-if (!window.cancelAnimationFrame) {
-window.cancelAnimationFrame = function(id) {
-clearTimeout(id);
-};
-}
+    if (!window.cancelAnimationFrame) {
+        window.cancelAnimationFrame = function(id) {
+            clearTimeout(id);
+        };
+    }
 }());
 
 function addEvent(element, eventName, callback) {
-if (element.addEventListener) {
-element.addEventListener(eventName, callback, false);
-}
-else if (element.attachEvent) {
-element.attachEvent('on' + eventName, function(e) {
-e = e || window.event;
-e.target = e.target || e.srcElement;
-e.preventDefault = e.preventDefault || function() { e.returnValue = false; };
-e.stopPropagation = e.stopPropagation || function() { e.cancelBubble = true; };
-callback.call(element, e);
-});
-}
+    if (element.addEventListener) {
+        element.addEventListener(eventName, callback, false);
+    }
+    else if (element.attachEvent) {
+        element.attachEvent('on' + eventName, function(e) {
+            e = e || window.event;
+            e.target = e.target || e.srcElement;
+            e.preventDefault = e.preventDefault || function() { e.returnValue = false; };
+            e.stopPropagation = e.stopPropagation || function() { e.cancelBubble = true; };
+            callback.call(element, e);
+        });
+    }
 }
 
 var textContainer = document.getElementById('co3m-text').parentNode;
@@ -50,39 +50,32 @@ var fullscreenOverlay = document.getElementsByClassName('fullscreen-overlay')[0]
 
 var blueDotX;
 var blueDotY;
-var blueDotDirection = 1; // 1 for right, -1 for left
+var blueDotDirection = 1;
 
 var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
-// We'll now define movement based on time for consistency
+var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.002;
+var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
 var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.29;
 var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.00003;
 
-var FIXED_UPDATE_INTERVAL_MS = 10; // The fixed time step for physics updates
+var FIXED_UPDATE_INTERVAL_MS = 10;
 
-// New constants for timing-based movement
-var TOTAL_MOVEMENT_DURATION_MS = 201; // Total duration for one full cycle (left to right and back)
-var OBSTACLE_CENTER_TIME_MS = 101; // Time when the blue dot should be at the red dot's center
-
-// Derived values
-var HALF_MOVEMENT_DURATION_MS = TOTAL_MOVEMENT_DURATION_MS / 2; // Time to travel from one end to the other (e.g., left to right boundary)
-
-var moveSpeedPxPerMs; // Pixels per millisecond
+var moveSpeedPx;
 var actualJumpHeightPx;
-var gravityPxPerMsSquared; // Pixels per millisecond squared
-var movementLimitPx; // The maximum displacement from the center point
-
+var gravityPx;
+var movementLimitPx;
 var currentFontSizePx;
 
 var isJumping = false;
-var jumpVelocityPxPerMs = 0; // Jump velocity in pixels per millisecond
+var jumpVelocity = 0;
 var blueDotBaseY;
 
 var redDotRadiusPx;
 var blueDotRadiusPx;
 
-var redDotCenterXPx; // X coordinate of the red dot's center relative to textContainer
-var leftBoundaryPx;  // Absolute X coordinate for the left movement limit of blue dot
-var rightBoundaryPx; // Absolute X coordinate for the right movement limit of blue dot
+var redDotCenterXPx;
+var leftBoundaryPx;
+var rightBoundaryPx;
 
 var animationFrameId = null;
 var lastTimestamp = 0;
@@ -91,8 +84,11 @@ var accumulatedTime = 0;
 var prevBlueDotX;
 var prevBlueDotY;
 
-// Track the current time in the movement cycle
-var currentMovementTimeMs = 0;
+// --- New variables for Golden Timing ---
+var GOLDEN_TIMING_WINDOW_MS = 100; // Time window in milliseconds before collision for a perfect jump
+var isGoldenJumpActive = false;
+var timeToCollision = Infinity;
+// --- End New variables ---
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -131,22 +127,13 @@ function adjustFontSize() {
     blueDotMoving.style.width = dotSizePx + 'px';
     blueDotMoving.style.height = dotSizePx + 'px';
 
-    // Recalculate physics parameters based on new font size
+    moveSpeedPx = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT;
     actualJumpHeightPx = currentFontSizePx * DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT;
-    gravityPxPerMsSquared = currentFontSizePx * GRAVITY_RATIO_TO_FONT_HEIGHT;
-
-    // The maximum displacement for the blue dot from the red dot's center.
-    // This defines the total horizontal travel distance.
-    movementLimitPx = (currentFontSizePx * DOT_RATIO_TO_FONT_HEIGHT) * 3; // Example: 3 times the dot size as movement limit. Adjust as needed for visual range.
-
-    // Calculate speed based on the desired movement time and pixel range
-    // moveSpeedPxPerMs = (movementLimitPx * 2) / TOTAL_MOVEMENT_DURATION_MS;
-    // For a more precise setup: the dot moves 'movementLimitPx' in 'HALF_MOVEMENT_DURATION_MS'
-    moveSpeedPxPerMs = movementLimitPx / HALF_MOVEMENT_DURATION_MS;
+    gravityPx = currentFontSizePx * GRAVITY_RATIO_TO_FONT_HEIGHT;
+    movementLimitPx = currentFontSizePx * MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT;
 }
 
 function renderBlueDot(alpha) {
-    // Interpolate for smooth animation between fixed updates
     var interpolatedX = prevBlueDotX + (blueDotX - prevBlueDotX) * alpha;
     var interpolatedY = prevBlueDotY + (blueDotY - prevBlueDotY) * alpha;
 
@@ -155,57 +142,44 @@ function renderBlueDot(alpha) {
 }
 
 function moveBlueDotFixed(fixedDeltaTime) {
-    // Update the movement time
-    currentMovementTimeMs += fixedDeltaTime;
+    blueDotX += moveSpeedPx * blueDotDirection * fixedDeltaTime;
 
-    // Ensure currentMovementTimeMs stays within one full cycle
-    currentMovementTimeMs %= TOTAL_MOVEMENT_DURATION_MS;
-
-    // Calculate blue dot's position based on time in the cycle
-    var positionInCycle = currentMovementTimeMs;
-
-    if (positionInCycle <= HALF_MOVEMENT_DURATION_MS) {
-        // Moving from left extreme towards right extreme (0 to HALF_MOVEMENT_DURATION_MS)
-        // Position will go from -movementLimitPx to 0, then 0 to movementLimitPx
-        // From 0 to HALF_MOVEMENT_DURATION_MS, relative position goes from -movementLimitPx to +movementLimitPx
-        var progress = positionInCycle / HALF_MOVEMENT_DURATION_MS; // 0 to 1
-        var relativeX = -movementLimitPx + (2 * movementLimitPx * progress); // -movementLimitPx to +movementLimitPx
-        blueDotX = redDotCenterXPx + relativeX - blueDotRadiusPx;
-    } else {
-        // Moving from right extreme back towards left extreme (HALF_MOVEMENT_DURATION_MS to TOTAL_MOVEMENT_DURATION_MS)
-        // From HALF_MOVEMENT_DURATION_MS to TOTAL_MOVEMENT_DURATION_MS, relative position goes from +movementLimitPx to -movementLimitPx
-        var timeAfterHalf = positionInCycle - HALF_MOVEMENT_DURATION_MS;
-        var progress = timeAfterHalf / HALF_MOVEMENT_DURATION_MS; // 0 to 1
-        var relativeX = movementLimitPx - (2 * movementLimitPx * progress); // +movementLimitPx to -movementLimitPx
-        blueDotX = redDotCenterXPx + relativeX - blueDotRadiusPx;
-    }
-
-    // Set direction for collision logic, though the primary movement is now time-based
-    if (blueDotX > prevBlueDotX) {
-        blueDotDirection = 1; // Moving right
-    } else if (blueDotX < prevBlueDotX) {
-        blueDotDirection = -1; // Moving left
+    if (blueDotX > rightBoundaryPx) {
+        blueDotX = rightBoundaryPx;
+        blueDotDirection *= -1;
+    } else if (blueDotX < leftBoundaryPx) {
+        blueDotX = leftBoundaryPx;
+        blueDotDirection *= -1;
     }
 }
 
-
 function jump() {
     if (!isJumping) {
-        isJumping = true;
-        // Calculate initial jump velocity based on desired jump height and gravity
-        jumpVelocityPxPerMs = -Math.sqrt(2 * gravityPxPerMsSquared * actualJumpHeightPx);
+        // Check for golden timing
+        if (timeToCollision > 0 && timeToCollision <= GOLDEN_TIMING_WINDOW_MS && blueDotY >= blueDotBaseY) {
+            isJumping = true;
+            isGoldenJumpActive = true;
+            jumpVelocity = -Math.sqrt(2 * gravityPx * (actualJumpHeightPx * 1.5)); // Slightly higher jump for perfect timing
+            redDotStatic.style.border = '2px solid green'; // Indicate a perfect jump
+        } else {
+            isJumping = true;
+            isGoldenJumpActive = false;
+            jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
+        }
     }
 }
 
 function applyGravityFixed(fixedDeltaTime) {
     if (isJumping) {
-        blueDotY += jumpVelocityPxPerMs * fixedDeltaTime;
-        jumpVelocityPxPerMs += gravityPxPerMsSquared * fixedDeltaTime;
+        blueDotY += jumpVelocity * fixedDeltaTime;
+        jumpVelocity += gravityPx * fixedDeltaTime;
 
         if (blueDotY >= blueDotBaseY) {
             blueDotY = blueDotBaseY;
             isJumping = false;
-            jumpVelocityPxPerMs = 0;
+            jumpVelocity = 0;
+            isGoldenJumpActive = false; // Reset golden jump status
+            redDotStatic.style.border = 'none'; // Reset border
         }
     } else {
         var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
@@ -227,19 +201,43 @@ function checkCollision() {
 
     var minDistance = redDotRadiusPx + blueDotRadiusPx;
 
-    if (distance < minDistance) {
-        // Collision detected
-        var overlap = minDistance - distance;
-        var angle = Math.atan2(dy, dx);
-
-        // Adjust blue dot position to prevent overlap
-        blueDotX += Math.cos(angle) * overlap;
-        blueDotY += Math.sin(angle) * overlap;
-
-        redDotStatic.style.border = '2px solid red'; // Indicate collision visually
-        return true;
+    // Calculate time to collision
+    if (!isJumping) {
+        var relativeSpeed = Math.abs(moveSpeedPx);
+        var distanceToCollision = Math.abs(dx) - minDistance;
+        if (distanceToCollision < 0) distanceToCollision = 0; // Already colliding or very close
+        timeToCollision = (relativeSpeed > 0) ? (distanceToCollision / relativeSpeed) : Infinity;
     } else {
-        redDotStatic.style.border = 'none';
+        timeToCollision = Infinity; // No collision check when jumping
+    }
+
+
+    if (distance < minDistance) {
+        if (isGoldenJumpActive) {
+            // If it's a golden jump, we let it pass through
+            redDotStatic.style.border = '2px solid green';
+            return false; // No actual collision response
+        } else {
+            var overlap = minDistance - distance;
+            var angle = Math.atan2(dy, dx);
+
+            blueDotX += Math.cos(angle) * overlap;
+            blueDotY += Math.sin(angle) * overlap;
+
+            // Adjust direction based on collision side relative to red dot center
+            if (blueDotX + blueDotRadiusPx > redDotCenterXPx) {
+                blueDotDirection = 1;
+            } else {
+                blueDotDirection = -1;
+            }
+
+            redDotStatic.style.border = '2px solid red'; // Indicate a regular collision
+            return true;
+        }
+    } else {
+        if (!isGoldenJumpActive) { // Only reset border if not in a golden jump state
+            redDotStatic.style.border = 'none';
+        }
         return false;
     }
 }
@@ -251,7 +249,6 @@ function gameLoop(timestamp) {
     var frameDeltaTime = timestamp - lastTimestamp;
     lastTimestamp = timestamp;
 
-    // Cap the frame delta to prevent "spiral of death" in case of major lag
     var MAX_FRAME_DELTA = FIXED_UPDATE_INTERVAL_MS * 5;
     if (frameDeltaTime > MAX_FRAME_DELTA) {
         frameDeltaTime = MAX_FRAME_DELTA;
@@ -262,15 +259,13 @@ function gameLoop(timestamp) {
     prevBlueDotX = blueDotX;
     prevBlueDotY = blueDotY;
 
-    // Fixed update loop
     while (accumulatedTime >= FIXED_UPDATE_INTERVAL_MS) {
         moveBlueDotFixed(FIXED_UPDATE_INTERVAL_MS);
         applyGravityFixed(FIXED_UPDATE_INTERVAL_MS);
-        checkCollision();
+        checkCollision(); // Check collision and update timeToCollision
         accumulatedTime -= FIXED_UPDATE_INTERVAL_MS;
     }
 
-    // Render with interpolation for smoothness
     var alpha = accumulatedTime / FIXED_UPDATE_INTERVAL_MS;
     renderBlueDot(alpha);
 
@@ -285,7 +280,7 @@ function initializeGame() {
 
     lastTimestamp = 0;
     accumulatedTime = 0;
-    currentMovementTimeMs = 0; // Reset movement time on initialization
+    timeToCollision = Infinity; // Reset time to collision
 
     adjustFontSize();
 
@@ -295,36 +290,21 @@ function initializeGame() {
     var redDotRect = redDotStatic.getBoundingClientRect();
     var textContainerRect = textContainer.getBoundingClientRect();
 
-    // Calculate red dot's center relative to its parent container (textContainer)
     redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
 
-    // Initialize blue dot at the "center" of its movement cycle
-    // We want the blue dot to be precisely at the red dot's center when currentMovementTimeMs is OBSTACLE_CENTER_TIME_MS (101ms)
-    // The current logic sets it to 0ms. Let's adjust the starting currentMovementTimeMs
-    currentMovementTimeMs = OBSTACLE_CENTER_TIME_MS; // Start the game with the blue dot at the obstacle's center time
-
-    // Calculate initial position based on currentMovementTimeMs
-    var positionInCycle = currentMovementTimeMs;
-    if (positionInCycle <= HALF_MOVEMENT_DURATION_MS) {
-        var progress = positionInCycle / HALF_MOVEMENT_DURATION_MS;
-        var relativeX = -movementLimitPx + (2 * movementLimitPx * progress);
-        blueDotX = redDotCenterXPx + relativeX - blueDotRadiusPx;
-    } else {
-        var timeAfterHalf = positionInCycle - HALF_MOVEMENT_DURATION_MS;
-        var progress = timeAfterHalf / HALF_MOVEMENT_DURATION_MS;
-        var relativeX = movementLimitPx - (2 * movementLimitPx * progress);
-        blueDotX = redDotCenterXPx + relativeX - blueDotRadiusPx;
-    }
+    leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
+    rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
 
     var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
     blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
 
+    blueDotX = redDotCenterXPx + redDotRadiusPx;
     blueDotY = blueDotBaseY;
 
     prevBlueDotX = blueDotX;
     prevBlueDotY = blueDotY;
 
-    renderBlueDot(1); // Render immediately after initialization
+    renderBlueDot(1);
 
     animationFrameId = window.requestAnimationFrame(gameLoop);
 }
@@ -358,28 +338,26 @@ addEvent(window, 'resize', function() {
     var textContainerRect = textContainer.getBoundingClientRect();
     redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
 
-    // Re-calculate blue dot's position based on the current movement time
-    // This helps maintain visual consistency during resize.
-    var positionInCycle = currentMovementTimeMs;
-    if (positionInCycle <= HALF_MOVEMENT_DURATION_MS) {
-        var progress = positionInCycle / HALF_MOVEMENT_DURATION_MS;
-        var relativeX = -movementLimitPx + (2 * movementLimitPx * progress);
-        blueDotX = redDotCenterXPx + relativeX - blueDotRadiusPx;
-    } else {
-        var timeAfterHalf = positionInCycle - HALF_MOVEMENT_DURATION_MS;
-        var progress = timeAfterHalf / HALF_MOVEMENT_DURATION_MS;
-        var relativeX = movementLimitPx - (2 * movementLimitPx * progress);
-        blueDotX = redDotCenterXPx + relativeX - blueDotRadiusPx;
-    }
+    leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
+    rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
 
     var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
     blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
 
     if (!isJumping) {
+        if (blueDotX > rightBoundaryPx) {
+            blueDotX = rightBoundaryPx;
+        } else if (blueDotX < leftBoundaryPx) {
+            blueDotX = leftBoundaryPx;
+        }
         blueDotY = blueDotBaseY;
+    } else {
+        if (blueDotX > rightBoundaryPx) {
+            blueDotX = rightBoundaryPx;
+        } else if (blueDotX < leftBoundaryPx) {
+            blueDotX = leftBoundaryPx;
+        }
     }
-    // If jumping, blueDotY is already being managed by gravity, so don't reset it
-
     prevBlueDotX = blueDotX;
     prevBlueDotY = blueDotY;
 
