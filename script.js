@@ -79,12 +79,8 @@ var rightBoundaryPx;
 var animationFrameId = null;
 var lastTimestamp = 0;
 
-// --- BIẾN MỚI CHO AUTO CLICK ---
-var **isAutoClickActive** = false; // Đặt thành true để kích hoạt auto click
-var **autoClickTolerancePx** = 10; // Ngưỡng pixel từ tâm chấm đỏ để kích hoạt nhảy tự động
-var **minTimeBetweenAutoJumps** = 100; // Thời gian tối thiểu giữa các lần nhảy tự động (miligiay)
-var **lastAutoJumpTime** = 0; // Thời điểm cuối cùng auto click đã kích hoạt jump
-// ------------------------------
+// NEW: Ngưỡng pixel để kích hoạt nhảy tự động
+var autoJumpThreshold = 5; // Điều chỉnh giá trị này để tinh chỉnh độ nhạy
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -223,23 +219,18 @@ function gameLoop(timestamp) {
 
     moveBlueDot(deltaTime);
     applyGravity(deltaTime);
-    checkCollision();
 
-    // --- LOGIC AUTO CLICK MỚI ---
-    if (isAutoClickActive && !isJumping) { // Chỉ thực hiện auto click khi không đang nhảy
-        var redCenterX = redDotStatic.offsetLeft + (redDotStatic.offsetWidth / 2);
-        var blueCenterX = blueDotX + blueDotRadiusPx;
+    // LOGIC TỰ ĐỘNG NHẢY:
+    // Kích hoạt nhảy tự động nếu blueDot gần redDot và không đang nhảy
+    var blueDotCenter = blueDotX + blueDotRadiusPx;
+    var redDotCenter = redDotCenterXPx;
+    var distanceToRedDotCenter = Math.abs(blueDotCenter - redDotCenter);
 
-        // Kiểm tra nếu chấm xanh đang ở gần tâm của chấm đỏ tĩnh
-        if (Math.abs(blueCenterX - redCenterX) <= autoClickTolerancePx) {
-            // Kiểm tra xem đã đủ thời gian chờ giữa các lần nhảy tự động chưa
-            if ((timestamp - lastAutoJumpTime) >= minTimeBetweenAutoJumps) {
-                jump();
-                lastAutoJumpTime = timestamp; // Cập nhật thời điểm nhảy tự động
-            }
-        }
+    if (!isJumping && distanceToRedDotCenter < autoJumpThreshold) {
+        jump(); // Tự động gọi hàm nhảy
     }
-    // ----------------------------
+
+    checkCollision();
 
     renderBlueDot();
 
@@ -279,43 +270,25 @@ function initializeGame() {
     animationFrameId = window.requestAnimationFrame(gameLoop);
 }
 
-// --- HÀM MỚI ĐỂ ĐIỀU KHIỂN AUTO CLICK TỪ BÊN NGOÀI (HOẶC GIAO DIỆN) ---
-function **toggleAutoClick**(active) {
-    isAutoClickActive = active;
-    if (active) {
-        console.log("Auto Click đã BẬT.");
-        lastAutoJumpTime = performance.now(); // Đảm bảo lần nhảy đầu tiên có thể xảy ra ngay
-    } else {
-        console.log("Auto Click đã TẮT.");
-    }
-}
-// --------------------------------------------------------------------
-
 addEvent(window, 'load', initializeGame);
 
-addEvent(fullscreenOverlay, 'mousedown', jump);
-addEvent(fullscreenOverlay, 'touchstart', jump);
-
-addEvent(window, 'keydown', function(event) {
-    if (event && event.preventDefault) {
-        event.preventDefault();
-    }
-    jump();
-});
-
-addEvent(window, 'contextmenu', function(event) {
-    if (event && event.preventDefault) {
-        event.preventDefault();
-    }
-    jump();
-});
+// ** Đã comment out các event listener cũ để ưu tiên tự động nhảy **
+// Nếu bạn muốn bật lại, hãy bỏ comment các dòng này:
+// addEvent(fullscreenOverlay, 'mousedown', jump);
+// addEvent(fullscreenOverlay, 'touchstart', jump);
+// addEvent(window, 'keydown', function(event) {
+//     if (event && event.preventDefault) {
+//         event.preventDefault();
+//     }
+//     jump();
+// });
+// addEvent(window, 'contextmenu', function(event) {
+//     if (event && event.preventDefault) {
+//         event.preventDefault();
+//     }
+//     jump();
+// });
 
 addEvent(window, 'resize', function() {
     initializeGame();
 });
-
-// Bạn có thể thêm một nút trong HTML để bật/tắt auto click, ví dụ:
-/*
-    <button onclick="toggleAutoClick(true)">Bật Auto Click</button>
-    <button onclick="toggleAutoClick(false)">Tắt Auto Click</button>
-*/
