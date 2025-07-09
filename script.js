@@ -55,14 +55,22 @@ var blueDotDirection = 1;
 var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
 var MOVE_SPEED_RATIO_TO_FONT_HEIGHT_PER_MS = 0.03 / 16;
 var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
-var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.303;
-var GRAVITY_RATIO_TO_FONT_HEIGHT_PER_MS_SQUARED = 0.009 / (16 * 16);
+
+// NEW: Hằng số cho chiều cao nhảy dựa trên chiều cao của chấm đỏ
+// Giá trị này sẽ xác định chiều cao nhảy tính bằng "số lần chiều cao của chấm đỏ"
+// Ví dụ: 1.0 nghĩa là nhảy cao bằng 1 lần chiều cao chấm đỏ
+//       1.5 nghĩa là nhảy cao bằng 1.5 lần chiều cao chấm đỏ
+var DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT = 1.2; // Bạn có thể điều chỉnh giá trị này
+
+// Điều chỉnh trọng lực để phù hợp với chiều cao nhảy mới.
+// GravityPxPerMsSquared cũng sẽ được tính dựa trên redDotStatic.offsetHeight
+var GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED = 0.0008 / (16 * 16); // Điều chỉnh giá trị này để tinh chỉnh trọng lực
 
 var moveSpeedPxPerMs;
 var actualJumpHeightPx;
 var gravityPxPerMsSquared;
 var movementLimitPx;
-var currentFontSizePx;
+var currentFontSizePx; // Vẫn cần cho kích thước chấm
 
 var isJumping = false;
 var jumpVelocity = 0;
@@ -115,13 +123,21 @@ function adjustFontSize() {
     blueDotMoving.style.width = dotSizePx + 'px';
     blueDotMoving.style.height = dotSizePx + 'px';
 
+    // Tính toán lại các giá trị phụ thuộc vào kích thước thực tế của chấm đỏ sau khi nó đã được render
+    // LƯU Ý: redDotStatic.offsetHeight chỉ chính xác sau khi các style đã được áp dụng và browser đã render
+    // Tuy nhiên, vì adjustFontSize được gọi trong initializeGame và resize, nơi DOM đã sẵn sàng, nên nó sẽ hoạt động.
+    var redDotActualHeight = redDotStatic.offsetHeight;
+
     moveSpeedPxPerMs = currentFontSizePx * MOVE_SPEED_RATIO_TO_FONT_HEIGHT_PER_MS;
-    actualJumpHeightPx = currentFontSizePx * DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT;
-    gravityPxPerMsSquared = currentFontSizePx * GRAVITY_RATIO_TO_FONT_HEIGHT_PER_MS_SQUARED;
     movementLimitPx = currentFontSizePx * MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT;
 
+    // CHỈNH SỬA: Tính toán chiều cao nhảy thực tế dựa trên chiều cao chấm đỏ
+    actualJumpHeightPx = redDotActualHeight * DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT;
+
+    // CHỈNH SỬA: Tính toán trọng lực dựa trên chiều cao chấm đỏ
+    gravityPxPerMsSquared = redDotActualHeight * GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED;
+
     // jumpVelocity ban đầu (đi lên là âm)
-    // Cần tính lại mỗi khi adjustFontSize được gọi, để đảm bảo giá trị này đúng với kích thước mới
     jumpVelocity = -Math.sqrt(2 * gravityPxPerMsSquared * actualJumpHeightPx);
 }
 
@@ -231,7 +247,7 @@ function initializeGame() {
     lastTimestamp = 0;
     isJumping = false; // Đảm bảo trạng thái nhảy được reset
 
-    adjustFontSize(); // Tính toán lại tất cả các thông số phụ thuộc font size
+    adjustFontSize(); // Tính toán lại tất cả các thông số phụ thuộc font size và kích thước chấm đỏ
 
     redDotRadiusPx = redDotStatic.offsetWidth / 2;
     blueDotRadiusPx = blueDotMoving.offsetWidth / 2;
@@ -249,7 +265,7 @@ function initializeGame() {
     blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
 
     // Đặt lại vị trí ban đầu của blueDotMoving một cách nhất quán
-    blueDotX = redDotCenterXPx - blueDotRadiusPx; // Đặt nó ở vị trí trung tâm ban đầu, hoặc bạn có thể đặt nó ở một vị trí khởi đầu khác tùy ý
+    blueDotX = redDotCenterXPx - blueDotRadiusPx;
     blueDotY = blueDotBaseY;
 
     renderBlueDot();
@@ -277,8 +293,5 @@ addEvent(window, 'contextmenu', function(event) {
 });
 
 addEvent(window, 'resize', function() {
-    // Để đảm bảo đồng nhất, chúng ta cần thực hiện lại một phần logic khởi tạo.
-    // Việc này sẽ tính toán lại kích thước và vị trí của các chấm dựa trên kích thước màn hình mới.
-    // Điều này sẽ làm game "đặt lại" một chút khi resize, nhưng đảm bảo độ khó nhất quán.
     initializeGame();
 });
