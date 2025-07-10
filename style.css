@@ -1,94 +1,74 @@
 html, body {
-height: 100%;
-margin: 0;
-padding: 0;
-overflow: hidden;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
 }
 
 body {
-font-family: sans-serif;
-background-color: #f0f0f0;
-position: relative;
--webkit-user-select: none;
--moz-user-select: none;
--ms-user-select: none;
-user-select: none;
--webkit-tap-highlight-color: transparent;
--ms-touch-action: pan-y;
-touch-action: pan-y;
+    font-family: sans-serif;
+    background-color: #f0f0f0;
+    position: relative;
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+
+    -webkit-tap-highlight-color: transparent;
+    -ms-touch-action: manipulation;
+    touch-action: manipulation;
 }
 
 .center-container {
-position: absolute;
-top: 50%;
-left: 50%;
--webkit-transform: translate(-50%, -50%);
--ms-transform: translate(-50%, -50%);
-transform: translate(-50%, -50%);
-white-space: nowrap;
-}
-
-#score-display {
-position: absolute;
-top: 50%;
-left: 50%;
-transform: translate(-50%, -50%);
-font-size: 100vh; /* Kích thước font bằng chiều cao viewport */
-font-weight: 900;
-color: blue; /* Màu xanh dương */
-opacity: 0; /* Mặc định ẩn */
-transition: opacity 0.3s ease-in-out;
-z-index: -1;
-pointer-events: none;
-white-space: nowrap;
-text-align: center;
-width: 100%;
-height: 100%;
-display: flex;
-justify-content: center;
-align-items: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    -webkit-transform: translate(-50%, -50%);
+    -ms-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
 }
 
 .text-part {
-display: inline-block;
-font-size: 50px;
-font-weight: 900;
-color: black;
-vertical-align: baseline;
-line-height: 1;
-text-align: left;
-transition: opacity 0.3s ease-in-out;
+    display: inline-block;
+    font-size: 50px; 
+    font-weight: 900;
+    color: black;
+    vertical-align: baseline;
+    line-height: 1;
+    text-align: left;
 }
 
 .red-dot-static {
-display: inline-block;
-width: auto;
-height: auto;
-background-color: black;
-border-radius: 50%;
-vertical-align: baseline;
-margin: 0 5px;
-position: relative;
-transition: border 0.1s ease-out;
+    display: inline-block;
+    width: auto;
+    height: auto;
+    background-color: black;
+    border-radius: 50%;
+    vertical-align: baseline;
+    margin: 0 5px;
+    position: relative;
+    transition: border 0.1s ease-out;
 }
 
 .blue-dot-moving {
-position: absolute;
-width: auto;
-height: auto;
-background-color: red;
-border-radius: 50%;
-cursor: pointer;
-z-index: 10;
+    position: absolute;
+    width: auto;
+    height: auto;
+    background-color: red;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
 }
 
 .fullscreen-overlay {
-position: fixed;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
-z-index: 9999;
-cursor: pointer;
-background-color: transparent;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    cursor: pointer;
+    background-color: transparent;
 }

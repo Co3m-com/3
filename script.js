@@ -29,7 +29,8 @@
 function addEvent(element, eventName, callback) {
     if (element.addEventListener) {
         element.addEventListener(eventName, callback, false);
-    } else if (element.attachEvent) {
+    }
+    else if (element.attachEvent) {
         element.attachEvent('on' + eventName, function(e) {
             e = e || window.event;
             e.target = e.target || e.srcElement;
@@ -46,17 +47,18 @@ var comText = document.getElementById('com-text');
 var redDotStatic = document.getElementById('red-dot-static-id');
 var blueDotMoving = document.getElementById('blue-dot-moving-id');
 var fullscreenOverlay = document.getElementsByClassName('fullscreen-overlay')[0];
-var scoreDisplay = document.getElementById('score-display');
 
 var blueDotX;
 var blueDotY;
-var blueDotDirection = 1; // 1 = sang phải, -1 = sang trái
+var blueDotDirection = 1;
 
 var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
-var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.03;
-var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.277;
-var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.005;
+var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.002;
 var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.8;
+var DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT = 0.29;
+var GRAVITY_RATIO_TO_FONT_HEIGHT = 0.00003;
+
+var FIXED_UPDATE_INTERVAL_MS = 10;
 
 var moveSpeedPx;
 var actualJumpHeightPx;
@@ -77,10 +79,10 @@ var rightBoundaryPx;
 
 var animationFrameId = null;
 var lastTimestamp = 0;
+var accumulatedTime = 0;
 
-var score = 0;
-var blueDotSideOfRedDotBeforeJump;
-var hasScoredThisJump = false;
+var prevBlueDotX;
+var prevBlueDotY;
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -123,17 +125,18 @@ function adjustFontSize() {
     actualJumpHeightPx = currentFontSizePx * DESIRED_JUMP_HEIGHT_RATIO_TO_FONT_HEIGHT;
     gravityPx = currentFontSizePx * GRAVITY_RATIO_TO_FONT_HEIGHT;
     movementLimitPx = currentFontSizePx * MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT;
-
-    scoreDisplay.style.fontSize = (currentFontSizePx * 1.6) + 'px';
 }
 
-function updateBlueDotPosition() {
-    blueDotMoving.style.left = blueDotX + 'px';
-    blueDotMoving.style.top = blueDotY + 'px';
+function renderBlueDot(alpha) {
+    var interpolatedX = prevBlueDotX + (blueDotX - prevBlueDotX) * alpha;
+    var interpolatedY = prevBlueDotY + (blueDotY - prevBlueDotY) * alpha;
+
+    blueDotMoving.style.left = interpolatedX + 'px';
+    blueDotMoving.style.top = interpolatedY + 'px';
 }
 
-function moveBlueDot(deltaTime) {
-    blueDotX += moveSpeedPx * blueDotDirection * deltaTime * 60;
+function moveBlueDotFixed(fixedDeltaTime) {
+    blueDotX += moveSpeedPx * blueDotDirection * fixedDeltaTime;
 
     if (blueDotX > rightBoundaryPx) {
         blueDotX = rightBoundaryPx;
@@ -148,47 +151,18 @@ function jump() {
     if (!isJumping) {
         isJumping = true;
         jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
-        hasScoredThisJump = false;
-
-        var blueDotCenter = blueDotX + blueDotRadiusPx;
-        if (blueDotCenter < redDotCenterXPx) {
-            blueDotSideOfRedDotBeforeJump = 'left';
-        } else {
-            blueDotSideOfRedDotBeforeJump = 'right';
-        }
     }
 }
 
-function applyGravity(deltaTime) {
+function applyGravityFixed(fixedDeltaTime) {
     if (isJumping) {
-        blueDotY += jumpVelocity * deltaTime * 60;
-        jumpVelocity += gravityPx * deltaTime * 60;
+        blueDotY += jumpVelocity * fixedDeltaTime;
+        jumpVelocity += gravityPx * fixedDeltaTime;
 
         if (blueDotY >= blueDotBaseY) {
             blueDotY = blueDotBaseY;
             isJumping = false;
             jumpVelocity = 0;
-            
-            var blueDotCenter = blueDotX + blueDotRadiusPx;
-            var blueDotSideOfRedDotAfterJump;
-
-            if (blueDotCenter < redDotCenterXPx) {
-                blueDotSideOfRedDotAfterJump = 'left';
-            } else {
-                blueDotSideOfRedDotAfterJump = 'right';
-            }
-
-            if (blueDotSideOfRedDotBeforeJump !== blueDotSideOfRedDotAfterJump) {
-                if (!hasScoredThisJump) {
-                    score++;
-                    updateScoreDisplay();
-                    hideCo3mComText();
-                    hasScoredThisJump = true;
-                }
-            } else {
-                // Chạm đất nhưng không nhảy qua được phía bên kia, reset điểm
-                resetScore();
-            }
         }
     } else {
         var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
@@ -201,30 +175,29 @@ function checkCollision() {
     var redCenterX = redDotStatic.offsetLeft + (redDotStatic.offsetWidth / 2);
     var redCenterY = redDotStatic.offsetTop + (redDotStatic.offsetHeight / 2);
 
-    var dx = blueDotX + blueDotRadiusPx - redCenterX;
-    var dy = blueDotY + blueDotRadiusPx - redCenterY;
+    var blueCenterX = blueDotX + blueDotRadiusPx;
+    var blueCenterY = blueDotY + blueDotRadiusPx;
+
+    var dx = blueCenterX - redCenterX;
+    var dy = blueCenterY - redCenterY;
     var distance = Math.sqrt(dx * dx + dy * dy);
 
     var minDistance = redDotRadiusPx + blueDotRadiusPx;
 
     if (distance < minDistance) {
-        redDotStatic.style.border = '2px solid red';
-
-        // Xử lý bật lại
         var overlap = minDistance - distance;
         var angle = Math.atan2(dy, dx);
 
         blueDotX += Math.cos(angle) * overlap;
         blueDotY += Math.sin(angle) * overlap;
 
-        blueDotDirection *= -1;
-
-        // Bất kể đang nhảy hay không, nếu có va chạm (không phải do nhảy qua), reset điểm
-        // Điều kiện reset điểm khi va chạm không phải là cú nhảy thành công
-        if (!isJumping || (isJumping && !hasScoredThisJump)) { // Nếu không nhảy hoặc đang nhảy nhưng chưa ghi điểm
-             resetScore();
+        if (blueDotX + blueDotRadiusPx > redDotCenterXPx) {
+            blueDotDirection = 1;
+        } else {
+            blueDotDirection = -1;
         }
-       
+
+        redDotStatic.style.border = '2px solid red';
         return true;
     } else {
         redDotStatic.style.border = 'none';
@@ -236,40 +209,30 @@ function gameLoop(timestamp) {
     if (!lastTimestamp) {
         lastTimestamp = timestamp;
     }
-    var deltaTime = (timestamp - lastTimestamp) / 1000;
+    var frameDeltaTime = timestamp - lastTimestamp;
     lastTimestamp = timestamp;
 
-    moveBlueDot(deltaTime);
-    applyGravity(deltaTime);
-    checkCollision();
-    updateBlueDotPosition();
-    animationFrameId = window.requestAnimationFrame(gameLoop);
-}
-
-function updateScoreDisplay() {
-    if (score > 0) {
-        scoreDisplay.textContent = score;
-        scoreDisplay.style.opacity = '0.7';
-    } else {
-        scoreDisplay.style.opacity = '0';
+    var MAX_FRAME_DELTA = FIXED_UPDATE_INTERVAL_MS * 5;
+    if (frameDeltaTime > MAX_FRAME_DELTA) {
+        frameDeltaTime = MAX_FRAME_DELTA;
     }
-}
 
-function resetScore() {
-    score = 0;
-    updateScoreDisplay();
-    showCo3mComText();
-    hasScoredThisJump = false;
-}
+    accumulatedTime += frameDeltaTime;
 
-function hideCo3mComText() {
-    co3mText.style.opacity = '0';
-    comText.style.opacity = '0';
-}
+    prevBlueDotX = blueDotX;
+    prevBlueDotY = blueDotY;
 
-function showCo3mComText() {
-    co3mText.style.opacity = '1';
-    comText.style.opacity = '1';
+    while (accumulatedTime >= FIXED_UPDATE_INTERVAL_MS) {
+        moveBlueDotFixed(FIXED_UPDATE_INTERVAL_MS);
+        applyGravityFixed(FIXED_UPDATE_INTERVAL_MS);
+        checkCollision();
+        accumulatedTime -= FIXED_UPDATE_INTERVAL_MS;
+    }
+
+    var alpha = accumulatedTime / FIXED_UPDATE_INTERVAL_MS;
+    renderBlueDot(alpha);
+
+    animationFrameId = window.requestAnimationFrame(gameLoop);
 }
 
 function initializeGame() {
@@ -279,7 +242,7 @@ function initializeGame() {
     }
 
     lastTimestamp = 0;
-    resetScore();
+    accumulatedTime = 0;
 
     adjustFontSize();
 
@@ -300,7 +263,11 @@ function initializeGame() {
     blueDotX = redDotCenterXPx + redDotRadiusPx;
     blueDotY = blueDotBaseY;
 
-    updateBlueDotPosition();
+    prevBlueDotX = blueDotX;
+    prevBlueDotY = blueDotY;
+
+    renderBlueDot(1);
+
     animationFrameId = window.requestAnimationFrame(gameLoop);
 }
 
@@ -353,5 +320,8 @@ addEvent(window, 'resize', function() {
             blueDotX = leftBoundaryPx;
         }
     }
-    updateBlueDotPosition();
+    prevBlueDotX = blueDotX;
+    prevBlueDotY = blueDotY;
+
+    renderBlueDot(1);
 });
