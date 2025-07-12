@@ -9,15 +9,13 @@ body {
     font-family: sans-serif;
     background-color: #f0f0f0;
     position: relative;
-
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-
     -webkit-tap-highlight-color: transparent;
-    -ms-touch-action: manipulation;
-    touch-action: manipulation;
+    -ms-touch-action: pan-y;
+    touch-action: pan-y;
 }
 
 .center-container {
@@ -30,14 +28,36 @@ body {
     white-space: nowrap;
 }
 
+#score-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* transform: translate(-50%, -50%); <-- Dòng này được bỏ đi để tăng tương thích */
+    font-size: 100vh;
+    font-weight: 900;
+    color: blue;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    z-index: 5;
+    pointer-events: none;
+    white-space: nowrap;
+    text-align: center;
+    width: auto; /* Đảm bảo width auto để tính toán offsetWidth chính xác */
+    height: auto; /* Đảm bảo height auto để tính toán offsetHeight chính xác */
+    /* display: flex;
+    justify-content: center;
+    align-items: center; */ /* Có thể bỏ các dòng này nếu cần tương thích cực cũ */
+}
+
 .text-part {
     display: inline-block;
-    font-size: 50px; 
+    font-size: 50px;
     font-weight: 900;
     color: black;
     vertical-align: baseline;
     line-height: 1;
     text-align: left;
+    transition: opacity 0.3s ease-in-out;
 }
 
 .red-dot-static {
