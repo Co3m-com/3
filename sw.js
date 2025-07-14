@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-web-cache-v202507141656'; // Đổi tên cache để kích hoạt cập nhật khi có code mới
+const CACHE_NAME = 'my-web-cache-v202507141657'; // Đổi tên cache để kích hoạt cập nhật khi có code mới
 
 const urlsToCache = [
     './',
@@ -14,7 +14,7 @@ self.addEventListener('install', event => {
             .then(cache => {
                 return cache.addAll(urlsToCache);
             })
-            .then(() => self.skipWaiting())
+            .then(() => self.skipWaiting()) // Đảm bảo dòng này có
             .catch(error => {
                 console.error('Service Worker: Lỗi khi cài đặt cache:', error);
             })
@@ -31,7 +31,7 @@ self.addEventListener('activate', event => {
                     }
                 })
             );
-        }).then(() => self.clients.claim())
+        }).then(() => self.clients.claim()) // Đảm bảo dòng này có
     );
 });
 
@@ -39,11 +39,9 @@ self.addEventListener('fetch', event => {
     event.respondWith(
         caches.match(event.request)
             .then(response => {
-                // Trả về từ cache nếu có
                 if (response) {
                     return response;
                 }
-                // Nếu không có trong cache, fetch từ network
                 return fetch(event.request)
                     .catch(() => {
                         console.warn('Service Worker: Không thể fetch tài nguyên và không có trong cache:', event.request.url);
