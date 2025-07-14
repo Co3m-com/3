@@ -88,6 +88,61 @@ var justScoredAndLanded = false;
 
 var hasReversedOnCollision = false;
 
+// --- BẮT ĐẦU THÊM MỚI/SỬA ĐỔI ĐỂ DUY TRÌ TRẠNG THÁI GAME ---
+
+const GAME_STATE_KEY = 'co3m_game_state'; // Khóa để lưu trạng thái trong localStorage
+
+// Hàm lưu trạng thái game vào localStorage
+function saveGameState() {
+    const gameState = {
+        score: score,
+        blueDotX: blueDotX,
+        blueDotY: blueDotY,
+        blueDotDirection: blueDotDirection,
+        // Bạn có thể thêm các biến trạng thái khác vào đây nếu muốn duy trì chúng
+        // Ví dụ: isJumping: isJumping, jumpVelocity: jumpVelocity
+    };
+    try {
+        localStorage.setItem(GAME_STATE_KEY, JSON.stringify(gameState));
+    } catch (e) {
+        console.error("Lỗi khi lưu trạng thái game:", e);
+    }
+}
+
+// Hàm tải trạng thái game từ localStorage
+function loadGameState() {
+    try {
+        const savedState = localStorage.getItem(GAME_STATE_KEY);
+        if (savedState) {
+            const gameState = JSON.parse(savedState);
+            
+            // Cập nhật các biến game từ trạng thái đã lưu
+            score = gameState.score || 0;
+            // Đảm bảo có giá trị mặc định nếu không tồn tại trong bản lưu
+            blueDotX = gameState.blueDotX !== undefined ? gameState.blueDotX : blueDotX; 
+            blueDotY = gameState.blueDotY !== undefined ? gameState.blueDotY : blueDotY;
+            blueDotDirection = gameState.blueDotDirection !== undefined ? gameState.blueDotDirection : 1;
+            
+            // Cập nhật hiển thị điểm và trạng thái văn bản
+            updateScoreDisplay(); // Lệnh này sẽ gọi saveGameState() nên đảm bảo trạng thái hiển thị được lưu lại
+            if (score > 0) {
+                hideCo3mComText();
+            } else {
+                showCo3mComText();
+            }
+            
+            return true; // Đã tải trạng thái thành công
+        }
+    } catch (e) {
+        console.error("Lỗi khi tải trạng thái game:", e);
+        // Xóa trạng thái lỗi để tránh vòng lặp nếu dữ liệu bị hỏng
+        localStorage.removeItem(GAME_STATE_KEY);
+    }
+    return false; // Không có trạng thái nào được lưu
+}
+
+// --- KẾT THÚC THÊM MỚI/SỬA ĐỔI ---
+
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -178,6 +233,7 @@ function moveBlueDotFixed(fixedDeltaTime) {
             }
         }
     }
+    saveGameState(); // Lưu trạng thái sau mỗi lần cập nhật vị trí để đảm bảo tính liên tục
 }
 
 function jump() {
@@ -235,7 +291,7 @@ function applyGravityFixed(fixedDeltaTime) {
             if (blueDotSideOfRedDotBeforeJump !== blueDotSideOfRedDotAfterJump) {
                 if (!hasScoredThisJump) {
                     score++;
-                    updateScoreDisplay();
+                    updateScoreDisplay(); // updateScoreDisplay sẽ gọi saveGameState
                     hideCo3mComText();
                     hasScoredThisJump = true;
                     justScoredAndLanded = true;
@@ -327,6 +383,7 @@ function updateScoreDisplay() {
         scoreDisplay.style.opacity = '0';
         scoreDisplay.textContent = '';
     }
+    saveGameState(); // Lưu trạng thái mỗi khi điểm số được cập nhật
 }
 
 function resetScore() {
@@ -335,6 +392,7 @@ function resetScore() {
     showCo3mComText();
     hasScoredThisJump = false;
     justScoredAndLanded = false;
+    localStorage.removeItem(GAME_STATE_KEY); // Xóa trạng thái đã lưu khi game reset hoàn toàn
 }
 
 function hideCo3mComText() {
@@ -355,7 +413,6 @@ function initializeGame() {
 
     lastTimestamp = 0;
     accumulatedTime = 0;
-    resetScore();
     isJumping = false;
     hasReversedOnCollision = false;
 
@@ -375,8 +432,22 @@ function initializeGame() {
     leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
     rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
 
-    blueDotX = redDotCenterXPx + redDotRadiusPx;
-    blueDotY = blueDotBaseY;
+    // --- SỬA ĐỔI QUAN TRỌNG TẠI ĐÂY ---
+    const hasLoadedState = loadGameState(); // Cố gắng tải trạng thái game đã lưu
+
+    if (!hasLoadedState) {
+        // Nếu không có trạng thái nào được lưu, khởi tạo game từ đầu
+        resetScore(); // Đảm bảo điểm về 0 và xóa localStorage
+        blueDotX = redDotCenterXPx + redDotRadiusPx; // Vị trí khởi tạo mặc định
+        blueDotY = blueDotBaseY;
+        blueDotDirection = 1;
+    } else {
+        // Nếu đã tải trạng thái, đảm bảo các biến vị trí được cập nhật và nằm trong giới hạn
+        // Đặc biệt quan trọng khi thay đổi kích thước màn hình
+        blueDotX = Math.max(leftBoundaryPx, Math.min(rightBoundaryPx, blueDotX));
+        blueDotY = Math.min(blueDotBaseY, blueDotY); // Đảm bảo blueDotY không thấp hơn blueDotBaseY
+    }
+    // --- KẾT THÚC SỬA ĐỔI QUAN TRỌNG ---
 
     renderBlueDot();
     animationFrameId = window.requestAnimationFrame(gameLoop);
