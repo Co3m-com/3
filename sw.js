@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-web-cache-v202507141503'; // Cập nhật phiên bản cache
+const CACHE_NAME = 'my-web-cache-v2025062735'; // Cập nhật phiên bản cache
 
 const urlsToCache = [
     './',
