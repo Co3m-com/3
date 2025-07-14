@@ -9,7 +9,7 @@ if ('serviceWorker' in navigator) {
                     if (newWorker) {
                         newWorker.addEventListener('statechange', () => {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                console.log('Service Worker: New content available, asking to skip waiting and reload.');
+                                console.log('Service Worker: New content available, asking to skip waiting.');
                                 newWorker.postMessage({ type: 'SKIP_WAITING' });
                             }
                         });
@@ -20,9 +20,11 @@ if ('serviceWorker' in navigator) {
                 console.error('Service Worker: Registration failed: ', error);
             });
         
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            console.log('Service Worker: Controller changed, reloading page for update.');
-            window.location.reload(); 
-        });
+        // Đoạn code này đã được loại bỏ để ngăn tự động tải lại trang khi có cập nhật Service Worker.
+        // Người dùng sẽ tiếp tục sử dụng phiên bản cũ cho đến khi họ tự refresh trang.
+        // navigator.serviceWorker.addEventListener('controllerchange', () => {
+        //     console.log('Service Worker: Controller changed, reloading page for update.');
+        //     window.location.reload(); 
+        // });
     });
 }
