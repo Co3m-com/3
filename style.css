@@ -32,7 +32,6 @@ body {
     position: absolute;
     top: 50%;
     left: 50%;
-    /* Đã bỏ transform ở đây để JS có thể tính toán chính xác hơn offsetWidth/Height trước khi căn giữa */
     font-size: 100vh;
     font-weight: 900;
     color: blue;
@@ -48,7 +47,7 @@ body {
 
 .text-part {
     display: inline-block;
-    font-size: 50px; /* Giá trị ban đầu, sẽ được JS ghi đè */
+    font-size: 50px; 
     font-weight: 900;
     color: black;
     vertical-align: baseline;
@@ -59,21 +58,21 @@ body {
 
 .red-dot-static {
     display: inline-block;
-    width: auto; /* Giá trị ban đầu, sẽ được JS ghi đè */
-    height: auto; /* Giá trị ban đầu, sẽ được JS ghi đè */
+    width: auto; 
+    height: auto; 
     background-color: black;
     border-radius: 50%;
     vertical-align: baseline;
     margin: 0 5px;
     position: relative;
     transition: border 0.1s ease-out;
-    box-sizing: border-box; /* Đảm bảo padding/border không làm tăng kích thước tổng thể */
+    box-sizing: border-box; 
 }
 
 .blue-dot-moving {
     position: absolute;
-    width: auto; /* Giá trị ban đầu, sẽ được JS ghi đè */
-    height: auto; /* Giá trị ban đầu, sẽ được JS ghi đè */
+    width: auto; 
+    height: auto; 
     background-color: red;
     border-radius: 50%;
     cursor: pointer;
