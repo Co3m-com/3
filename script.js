@@ -1,4 +1,4 @@
-  (function() {
+(function() {
     var lastTime = 0;
     var vendors = ['webkit', 'moz'];
     for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
@@ -295,13 +295,8 @@ function checkCollision() {
             hasReversedOnCollision = true; // Đánh dấu đã đổi hướng
         }
 
-        // Reset điểm nếu không nhảy VÀ đang ở gần mặt đất HOẶC vừa va chạm
-        // Sửa lại logic reset điểm: nếu chạm vào chướng ngại vật mà không phải đang trong quá trình ghi điểm, thì reset.
-        // Mục đích là cho phép va chạm khi đang nhảy mà không reset điểm ngay lập tức, chỉ reset khi không ghi điểm thành công
-        if (!isJumping || (isJumping && !hasScoredThisJump)) {
-             resetScore();
-        }
-
+        // Đã bỏ logic reset điểm tại đây để cho phép ghi điểm khi nhảy qua vật cản
+        // Việc reset điểm sẽ được xử lý khi người chơi tiếp đất và không vượt qua chướng ngại vật
         return true;
     } else {
         redDotStatic.style.border = 'none';
@@ -432,4 +427,3 @@ addEvent(window, 'contextmenu', function(event) {
 addEvent(window, 'resize', function() {
     initializeGame();
 });
-
