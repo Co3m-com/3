@@ -49,7 +49,7 @@ var scoreDisplay = document.getElementById('score-display');
 
 var blueDotX;
 var blueDotY;
-var blueDotDirection = 1; // 1 cho phải, -1 cho trái
+var blueDotDirection = 1; 
 
 var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
 var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.009;
@@ -86,9 +86,7 @@ var blueDotSideOfRedDotBeforeJump;
 var hasScoredThisJump = false;
 var justScoredAndLanded = false;
 
-// Biến mới để theo dõi xem va chạm có dẫn đến đổi hướng chưa
 var hasReversedOnCollision = false;
-
 
 function adjustFontSize() {
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -97,7 +95,6 @@ function adjustFontSize() {
 
     var TEST_FONT_SIZE = 100;
 
-    // Áp dụng font size và kích thước chấm tạm thời để đo đạc
     co3mText.style.fontSize = TEST_FONT_SIZE + 'px';
     comText.style.fontSize = TEST_FONT_SIZE + 'px';
 
@@ -107,8 +104,7 @@ function adjustFontSize() {
     blueDotMoving.style.width = testDotSizePx + 'px';
     blueDotMoving.style.height = testDotSizePx + 'px';
 
-    // Buộc trình duyệt reflow để đảm bảo offsetWidth được cập nhật
-    var tempOffsetWidth = textContainer.offsetWidth; // Đọc để buộc reflow
+    var tempOffsetWidth = textContainer.offsetWidth; 
 
     var textContainerWidthAtTestSize = textContainer.offsetWidth;
     if (textContainerWidthAtTestSize === 0) {
@@ -123,7 +119,6 @@ function adjustFontSize() {
 
     currentFontSizePx = newFontSize;
 
-    // Áp dụng font size và kích thước cuối cùng
     co3mText.style.fontSize = currentFontSizePx + 'px';
     comText.style.fontSize = currentFontSizePx + 'px';
 
@@ -133,10 +128,8 @@ function adjustFontSize() {
     blueDotMoving.style.width = dotSizePx + 'px';
     blueDotMoving.style.height = dotSizePx + 'px';
 
-    // Buộc reflow lần nữa nếu cần thiết sau khi áp dụng kích thước cuối cùng
     var tempRedDotOffsetHeight = redDotStatic.offsetHeight;
     var tempBlueDotOffsetHeight = blueDotMoving.offsetHeight;
-
 
     var redDotActualHeight = redDotStatic.offsetHeight;
     var blueDotActualHeight = blueDotMoving.offsetHeight;
@@ -147,7 +140,6 @@ function adjustFontSize() {
     actualJumpHeightPx = redDotActualHeight * DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT;
     gravityPx = redDotActualHeight * GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED * (FIXED_UPDATE_INTERVAL_MS * FIXED_UPDATE_INTERVAL_MS);
 
-    // Tính toán blueDotBaseY ngay tại đây để nó luôn được cập nhật sau khi resize
     var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
     blueDotBaseY = redDotBottom - blueDotActualHeight;
 }
@@ -165,7 +157,6 @@ function moveBlueDotFixed(fixedDeltaTime) {
     if (blueDotX > rightBoundaryPx) {
         blueDotX = rightBoundaryPx;
         blueDotDirection *= -1;
-        // Reset hasReversedOnCollision khi chạm biên để cho phép va chạm mới
         hasReversedOnCollision = false;
         if (!isJumping && blueDotDirection !== previousBlueDotDirection) {
             if (justScoredAndLanded) {
@@ -177,7 +168,6 @@ function moveBlueDotFixed(fixedDeltaTime) {
     } else if (blueDotX < leftBoundaryPx) {
         blueDotX = leftBoundaryPx;
         blueDotDirection *= -1;
-        // Reset hasReversedOnCollision khi chạm biên để cho phép va chạm mới
         hasReversedOnCollision = false;
         if (!isJumping && blueDotDirection !== previousBlueDotDirection) {
             if (justScoredAndLanded) {
@@ -195,7 +185,6 @@ function jump() {
         jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
         hasScoredThisJump = false;
         justScoredAndLanded = false;
-        // Reset hasReversedOnCollision khi nhảy để cho phép va chạm mới
         hasReversedOnCollision = false;
 
         var blueDotCenter = blueDotX + blueDotRadiusPx;
@@ -206,7 +195,6 @@ function jump() {
         } else if (blueDotCenter > redDotCenterXPx + margin) {
             blueDotSideOfRedDotBeforeJump = 'right';
         } else {
-            // Nếu ở giữa, lấy hướng hiện tại của blueDot
             if (blueDotDirection === 1) {
                 blueDotSideOfRedDotBeforeJump = 'left';
             } else {
@@ -225,7 +213,6 @@ function applyGravityFixed(fixedDeltaTime) {
             blueDotY = blueDotBaseY;
             isJumping = false;
             jumpVelocity = 0;
-            // Khi chạm đất, reset trạng thái va chạm
             hasReversedOnCollision = false;
 
             var blueDotCenter = blueDotX + blueDotRadiusPx;
@@ -237,11 +224,10 @@ function applyGravityFixed(fixedDeltaTime) {
             } else if (blueDotCenter > redDotCenterXPx + margin) {
                 blueDotSideOfRedDotAfterJump = 'right';
             } else {
-                // Nếu ở giữa, xác định bên nào dựa trên hướng đi
                 if (blueDotDirection === 1) {
-                    blueDotSideOfRedDotAfterJump = 'right'; // Nếu đang đi sang phải và đáp ở giữa, coi như đã sang phải
+                    blueDotSideOfRedDotAfterJump = 'right'; 
                 } else {
-                    blueDotSideOfRedDotAfterJump = 'left'; // Nếu đang đi sang trái và đáp ở giữa, coi như đã sang trái
+                    blueDotSideOfRedDotAfterJump = 'left'; 
                 }
             }
 
@@ -259,7 +245,6 @@ function applyGravityFixed(fixedDeltaTime) {
             }
         }
     } else {
-        // Luôn cập nhật blueDotBaseY và blueDotY khi không nhảy để thích ứng với resize
         var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
         blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
         blueDotY = blueDotBaseY;
@@ -282,25 +267,19 @@ function checkCollision() {
     if (distance < minDistance) {
         redDotStatic.style.border = '2px solid red';
 
-        // Đẩy chấm xanh ra khỏi va chạm
         var overlap = minDistance - distance;
         var angle = Math.atan2(dy, dx);
 
         blueDotX += Math.cos(angle) * overlap;
         blueDotY += Math.sin(angle) * overlap;
 
-        // Đảo ngược hướng di chuyển của chấm xanh khi va chạm, chỉ 1 lần mỗi lần va chạm mới
         if (!hasReversedOnCollision) {
             blueDotDirection *= -1;
-            hasReversedOnCollision = true; // Đánh dấu đã đổi hướng
+            hasReversedOnCollision = true; 
         }
-
-        // Đã bỏ logic reset điểm tại đây để cho phép ghi điểm khi nhảy qua vật cản
-        // Việc reset điểm sẽ được xử lý khi người chơi tiếp đất và không vượt qua chướng ngại vật
         return true;
     } else {
         redDotStatic.style.border = 'none';
-        // Khi không còn va chạm, cho phép đổi hướng lần nữa nếu va chạm lại
         hasReversedOnCollision = false;
         return false;
     }
@@ -323,12 +302,12 @@ function gameLoop(timestamp) {
     while (accumulatedTime >= FIXED_UPDATE_INTERVAL_MS) {
         moveBlueDotFixed(FIXED_UPDATE_INTERVAL_MS);
         applyGravityFixed(FIXED_UPDATE_INTERVAL_MS);
-        checkCollision(); // Gọi checkCollision sau khi di chuyển và áp dụng trọng lực
+        checkCollision(); 
         accumulatedTime -= FIXED_UPDATE_INTERVAL_MS;
     }
 
     renderBlueDot();
-
+    saveGameState(); 
     animationFrameId = window.requestAnimationFrame(gameLoop);
 }
 
@@ -340,7 +319,6 @@ function updateScoreDisplay() {
         var viewportHeight = window.innerHeight || document.documentElement.clientHeight;
         scoreDisplay.style.fontSize = (viewportHeight * 0.8) + 'px';
 
-        // Căn giữa score display
         scoreDisplay.style.marginLeft = - (scoreDisplay.offsetWidth / 2) + 'px';
         scoreDisplay.style.marginTop = - (scoreDisplay.offsetHeight / 2) + 'px';
 
@@ -368,6 +346,37 @@ function showCo3mComText() {
     comText.style.opacity = '1';
 }
 
+function saveGameState() {
+    try {
+        localStorage.setItem('gameState', JSON.stringify({
+            score: score,
+            blueDotX: blueDotX,
+            blueDotY: blueDotY,
+            blueDotDirection: blueDotDirection
+        }));
+    } catch (e) {
+        console.warn('Could not save game state to Local Storage:', e);
+    }
+}
+
+function loadGameState() {
+    try {
+        var savedState = localStorage.getItem('gameState');
+        if (savedState) {
+            var state = JSON.parse(savedState);
+            score = state.score || 0;
+            blueDotX = state.blueDotX;
+            blueDotY = state.blueDotY;
+            blueDotDirection = state.blueDotDirection;
+            return true;
+        }
+    } catch (e) {
+        console.warn('Could not load game state from Local Storage:', e);
+        localStorage.removeItem('gameState');
+    }
+    return false;
+}
+
 function initializeGame() {
     if (animationFrameId) {
         window.cancelAnimationFrame(animationFrameId);
@@ -376,13 +385,11 @@ function initializeGame() {
 
     lastTimestamp = 0;
     accumulatedTime = 0;
-    resetScore();
     isJumping = false;
-    hasReversedOnCollision = false; // Khởi tạo lại trạng thái va chạm
+    hasReversedOnCollision = false; 
 
-    adjustFontSize(); // Đảm bảo kích thước được cập nhật trước mọi tính toán vị trí
+    adjustFontSize(); 
 
-    // Buộc reflow lần nữa sau khi adjustFontSize để lấy các giá trị offset mới nhất
     var tempRedDotOffsetWidth = redDotStatic.offsetWidth;
     var tempBlueDotOffsetWidth = blueDotMoving.offsetWidth;
 
@@ -392,27 +399,34 @@ function initializeGame() {
     var redDotRect = redDotStatic.getBoundingClientRect();
     var textContainerRect = textContainer.getBoundingClientRect();
 
-    // Tính toán vị trí tâm chấm đỏ tương đối với textContainer (cha chung)
     redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
 
     leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
     rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
 
-    // Đặt vị trí ban đầu của blueDot
-    // Khởi tạo blueDotX ở bên phải của redDotCenterXPx
-    blueDotX = redDotCenterXPx + redDotRadiusPx;
-    blueDotY = blueDotBaseY; // Sử dụng blueDotBaseY đã được tính trong adjustFontSize
+    if (!loadGameState()) {
+        score = 0;
+        blueDotX = redDotCenterXPx + redDotRadiusPx;
+        blueDotY = blueDotBaseY;
+        blueDotDirection = 1; 
+        showCo3mComText();
+    } else {
+        updateScoreDisplay();
+        if (score > 0) {
+            hideCo3mComText();
+        } else {
+            showCo3mComText();
+        }
+    }
 
     renderBlueDot();
     animationFrameId = window.requestAnimationFrame(gameLoop);
 }
 
-// Thêm sự kiện
 addEvent(window, 'load', initializeGame);
 addEvent(fullscreenOverlay, 'mousedown', jump);
 addEvent(fullscreenOverlay, 'touchstart', jump);
 addEvent(window, 'keydown', function(event) {
-    // Ngăn chặn cuộn trang khi nhấn phím cách hoặc các phím mặc định khác
     if (event.code === 'Space' || event.key === ' ' || event.keyCode === 32) {
         event.preventDefault();
         jump();
