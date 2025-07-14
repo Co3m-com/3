@@ -1,10 +1,10 @@
-const CACHE_NAME = 'my-web-cache-v2025062739'; 
+const CACHE_NAME = 'my-web-cache-v20250714'; 
 
 const urlsToCache = [
     './',
     './index.html',
-    './style.css?v=2025062739',
-    './script.js?v=2025062739',
+    './style.css', // Bỏ tham số query string
+    './script.js', // Bỏ tham số query string
     './swreg.js'
 ];
 
@@ -26,7 +26,8 @@ self.addEventListener('install', event => {
 self.addEventListener('fetch', event => {
     const requestUrl = new URL(event.request.url);
 
-    if (urlsToCache.includes(requestUrl.pathname) || urlsToCache.includes(requestUrl.pathname + requestUrl.search) || event.request.mode === 'navigate') {
+    // Xử lý các tài nguyên trong urlsToCache và các yêu cầu điều hướng (navigate requests)
+    if (urlsToCache.some(url => requestUrl.pathname.endsWith(url.replace('./', '')) || requestUrl.href === new URL(url, self.location.origin).href) || event.request.mode === 'navigate') {
         event.respondWith(
             caches.match(event.request)
                 .then(cachedResponse => {
@@ -35,7 +36,8 @@ self.addEventListener('fetch', event => {
                         return cachedResponse;
                     }
 
-                    console.log(`[SW] Not in cache, fetching from network: ${event.request.url}`);
+                    // Nếu không có trong cache, fetch từ network và cache lại
+                    console.log(`[SW] Not in cache, fetching from network and caching: ${event.request.url}`);
                     return fetch(event.request)
                         .then(networkResponse => {
                             if (networkResponse.ok && event.request.method === 'GET') {
@@ -47,12 +49,14 @@ self.addEventListener('fetch', event => {
                             return networkResponse;
                         })
                         .catch(error => {
-                            console.error(`[SW] Fetch failed and no cache match for: ${event.request.url}`, error);
+                            console.error(`[SW] Fetch failed for: ${event.request.url} and no cache match.`, error);
                             throw error;
                         });
                 })
         );
     } else {
+        // Đối với các tài nguyên không nằm trong urlsToCache, vẫn cho phép network request.
+        // Nếu bạn muốn chặn hoàn toàn mọi network request, có thể bỏ phần này.
         event.respondWith(
             fetch(event.request).catch(error => {
                 console.log(`[SW] Network fetch failed for non-app-shell: ${event.request.url}, trying cache.`);
