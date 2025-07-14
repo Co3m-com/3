@@ -49,11 +49,11 @@ var scoreDisplay = document.getElementById('score-display');
 
 var blueDotX;
 var blueDotY;
-var blueDotDirection = 1;
+var blueDotDirection = 1; // 1 cho phải, -1 cho trái
 
 var DOT_RATIO_TO_FONT_HEIGHT = 0.3;
-var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.02;
-var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 1;
+var MOVE_SPEED_RATIO_TO_FONT_HEIGHT = 0.009;
+var MOVEMENT_LIMIT_RATIO_TO_FONT_HEIGHT = 0.5;
 
 var DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT = 1.6;
 var GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED = 0.013 / (16 * 16);
@@ -86,62 +86,8 @@ var blueDotSideOfRedDotBeforeJump;
 var hasScoredThisJump = false;
 var justScoredAndLanded = false;
 
+// Biến mới để theo dõi xem va chạm có dẫn đến đổi hướng chưa
 var hasReversedOnCollision = false;
-
-// --- BẮT ĐẦU THÊM MỚI/SỬA ĐỔI ĐỂ DUY TRÌ TRẠNG THÁI GAME ---
-
-const GAME_STATE_KEY = 'co3m_game_state'; // Khóa để lưu trạng thái trong localStorage
-
-// Hàm lưu trạng thái game vào localStorage
-function saveGameState() {
-    const gameState = {
-        score: score,
-        blueDotX: blueDotX,
-        blueDotY: blueDotY,
-        blueDotDirection: blueDotDirection,
-        // Bạn có thể thêm các biến trạng thái khác vào đây nếu muốn duy trì chúng
-        // Ví dụ: isJumping: isJumping, jumpVelocity: jumpVelocity
-    };
-    try {
-        localStorage.setItem(GAME_STATE_KEY, JSON.stringify(gameState));
-    } catch (e) {
-        console.error("Lỗi khi lưu trạng thái game:", e);
-    }
-}
-
-// Hàm tải trạng thái game từ localStorage
-function loadGameState() {
-    try {
-        const savedState = localStorage.getItem(GAME_STATE_KEY);
-        if (savedState) {
-            const gameState = JSON.parse(savedState);
-            
-            // Cập nhật các biến game từ trạng thái đã lưu
-            score = gameState.score || 0;
-            // Đảm bảo có giá trị mặc định nếu không tồn tại trong bản lưu
-            blueDotX = gameState.blueDotX !== undefined ? gameState.blueDotX : blueDotX; 
-            blueDotY = gameState.blueDotY !== undefined ? gameState.blueDotY : blueDotY;
-            blueDotDirection = gameState.blueDotDirection !== undefined ? gameState.blueDotDirection : 1;
-            
-            // Cập nhật hiển thị điểm và trạng thái văn bản
-            updateScoreDisplay(); // Lệnh này sẽ gọi saveGameState() nên đảm bảo trạng thái hiển thị được lưu lại
-            if (score > 0) {
-                hideCo3mComText();
-            } else {
-                showCo3mComText();
-            }
-            
-            return true; // Đã tải trạng thái thành công
-        }
-    } catch (e) {
-        console.error("Lỗi khi tải trạng thái game:", e);
-        // Xóa trạng thái lỗi để tránh vòng lặp nếu dữ liệu bị hỏng
-        localStorage.removeItem(GAME_STATE_KEY);
-    }
-    return false; // Không có trạng thái nào được lưu
-}
-
-// --- KẾT THÚC THÊM MỚI/SỬA ĐỔI ---
 
 
 function adjustFontSize() {
@@ -151,6 +97,7 @@ function adjustFontSize() {
 
     var TEST_FONT_SIZE = 100;
 
+    // Áp dụng font size và kích thước chấm tạm thời để đo đạc
     co3mText.style.fontSize = TEST_FONT_SIZE + 'px';
     comText.style.fontSize = TEST_FONT_SIZE + 'px';
 
@@ -160,7 +107,8 @@ function adjustFontSize() {
     blueDotMoving.style.width = testDotSizePx + 'px';
     blueDotMoving.style.height = testDotSizePx + 'px';
 
-    var tempOffsetWidth = textContainer.offsetWidth;
+    // Buộc trình duyệt reflow để đảm bảo offsetWidth được cập nhật
+    var tempOffsetWidth = textContainer.offsetWidth; // Đọc để buộc reflow
 
     var textContainerWidthAtTestSize = textContainer.offsetWidth;
     if (textContainerWidthAtTestSize === 0) {
@@ -175,6 +123,7 @@ function adjustFontSize() {
 
     currentFontSizePx = newFontSize;
 
+    // Áp dụng font size và kích thước cuối cùng
     co3mText.style.fontSize = currentFontSizePx + 'px';
     comText.style.fontSize = currentFontSizePx + 'px';
 
@@ -184,8 +133,10 @@ function adjustFontSize() {
     blueDotMoving.style.width = dotSizePx + 'px';
     blueDotMoving.style.height = dotSizePx + 'px';
 
+    // Buộc reflow lần nữa nếu cần thiết sau khi áp dụng kích thước cuối cùng
     var tempRedDotOffsetHeight = redDotStatic.offsetHeight;
     var tempBlueDotOffsetHeight = blueDotMoving.offsetHeight;
+
 
     var redDotActualHeight = redDotStatic.offsetHeight;
     var blueDotActualHeight = blueDotMoving.offsetHeight;
@@ -196,6 +147,7 @@ function adjustFontSize() {
     actualJumpHeightPx = redDotActualHeight * DESIRED_JUMP_HEIGHT_RATIO_TO_RED_DOT_HEIGHT;
     gravityPx = redDotActualHeight * GRAVITY_RATIO_TO_RED_DOT_HEIGHT_PER_MS_SQUARED * (FIXED_UPDATE_INTERVAL_MS * FIXED_UPDATE_INTERVAL_MS);
 
+    // Tính toán blueDotBaseY ngay tại đây để nó luôn được cập nhật sau khi resize
     var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
     blueDotBaseY = redDotBottom - blueDotActualHeight;
 }
@@ -213,6 +165,7 @@ function moveBlueDotFixed(fixedDeltaTime) {
     if (blueDotX > rightBoundaryPx) {
         blueDotX = rightBoundaryPx;
         blueDotDirection *= -1;
+        // Reset hasReversedOnCollision khi chạm biên để cho phép va chạm mới
         hasReversedOnCollision = false;
         if (!isJumping && blueDotDirection !== previousBlueDotDirection) {
             if (justScoredAndLanded) {
@@ -224,6 +177,7 @@ function moveBlueDotFixed(fixedDeltaTime) {
     } else if (blueDotX < leftBoundaryPx) {
         blueDotX = leftBoundaryPx;
         blueDotDirection *= -1;
+        // Reset hasReversedOnCollision khi chạm biên để cho phép va chạm mới
         hasReversedOnCollision = false;
         if (!isJumping && blueDotDirection !== previousBlueDotDirection) {
             if (justScoredAndLanded) {
@@ -233,7 +187,6 @@ function moveBlueDotFixed(fixedDeltaTime) {
             }
         }
     }
-    saveGameState(); // Lưu trạng thái sau mỗi lần cập nhật vị trí để đảm bảo tính liên tục
 }
 
 function jump() {
@@ -242,6 +195,7 @@ function jump() {
         jumpVelocity = -Math.sqrt(2 * gravityPx * actualJumpHeightPx);
         hasScoredThisJump = false;
         justScoredAndLanded = false;
+        // Reset hasReversedOnCollision khi nhảy để cho phép va chạm mới
         hasReversedOnCollision = false;
 
         var blueDotCenter = blueDotX + blueDotRadiusPx;
@@ -252,6 +206,7 @@ function jump() {
         } else if (blueDotCenter > redDotCenterXPx + margin) {
             blueDotSideOfRedDotBeforeJump = 'right';
         } else {
+            // Nếu ở giữa, lấy hướng hiện tại của blueDot
             if (blueDotDirection === 1) {
                 blueDotSideOfRedDotBeforeJump = 'left';
             } else {
@@ -270,6 +225,7 @@ function applyGravityFixed(fixedDeltaTime) {
             blueDotY = blueDotBaseY;
             isJumping = false;
             jumpVelocity = 0;
+            // Khi chạm đất, reset trạng thái va chạm
             hasReversedOnCollision = false;
 
             var blueDotCenter = blueDotX + blueDotRadiusPx;
@@ -281,17 +237,18 @@ function applyGravityFixed(fixedDeltaTime) {
             } else if (blueDotCenter > redDotCenterXPx + margin) {
                 blueDotSideOfRedDotAfterJump = 'right';
             } else {
+                // Nếu ở giữa, xác định bên nào dựa trên hướng đi
                 if (blueDotDirection === 1) {
-                    blueDotSideOfRedDotAfterJump = 'right';
+                    blueDotSideOfRedDotAfterJump = 'right'; // Nếu đang đi sang phải và đáp ở giữa, coi như đã sang phải
                 } else {
-                    blueDotSideOfRedDotAfterJump = 'left';
+                    blueDotSideOfRedDotAfterJump = 'left'; // Nếu đang đi sang trái và đáp ở giữa, coi như đã sang trái
                 }
             }
 
             if (blueDotSideOfRedDotBeforeJump !== blueDotSideOfRedDotAfterJump) {
                 if (!hasScoredThisJump) {
                     score++;
-                    updateScoreDisplay(); // updateScoreDisplay sẽ gọi saveGameState
+                    updateScoreDisplay();
                     hideCo3mComText();
                     hasScoredThisJump = true;
                     justScoredAndLanded = true;
@@ -302,6 +259,7 @@ function applyGravityFixed(fixedDeltaTime) {
             }
         }
     } else {
+        // Luôn cập nhật blueDotBaseY và blueDotY khi không nhảy để thích ứng với resize
         var redDotBottom = redDotStatic.offsetTop + redDotStatic.offsetHeight;
         blueDotBaseY = redDotBottom - blueDotMoving.offsetHeight;
         blueDotY = blueDotBaseY;
@@ -324,19 +282,25 @@ function checkCollision() {
     if (distance < minDistance) {
         redDotStatic.style.border = '2px solid red';
 
+        // Đẩy chấm xanh ra khỏi va chạm
         var overlap = minDistance - distance;
         var angle = Math.atan2(dy, dx);
 
         blueDotX += Math.cos(angle) * overlap;
         blueDotY += Math.sin(angle) * overlap;
 
+        // Đảo ngược hướng di chuyển của chấm xanh khi va chạm, chỉ 1 lần mỗi lần va chạm mới
         if (!hasReversedOnCollision) {
             blueDotDirection *= -1;
-            hasReversedOnCollision = true;
+            hasReversedOnCollision = true; // Đánh dấu đã đổi hướng
         }
+
+        // Đã bỏ logic reset điểm tại đây để cho phép ghi điểm khi nhảy qua vật cản
+        // Việc reset điểm sẽ được xử lý khi người chơi tiếp đất và không vượt qua chướng ngại vật
         return true;
     } else {
         redDotStatic.style.border = 'none';
+        // Khi không còn va chạm, cho phép đổi hướng lần nữa nếu va chạm lại
         hasReversedOnCollision = false;
         return false;
     }
@@ -359,7 +323,7 @@ function gameLoop(timestamp) {
     while (accumulatedTime >= FIXED_UPDATE_INTERVAL_MS) {
         moveBlueDotFixed(FIXED_UPDATE_INTERVAL_MS);
         applyGravityFixed(FIXED_UPDATE_INTERVAL_MS);
-        checkCollision();
+        checkCollision(); // Gọi checkCollision sau khi di chuyển và áp dụng trọng lực
         accumulatedTime -= FIXED_UPDATE_INTERVAL_MS;
     }
 
@@ -376,6 +340,7 @@ function updateScoreDisplay() {
         var viewportHeight = window.innerHeight || document.documentElement.clientHeight;
         scoreDisplay.style.fontSize = (viewportHeight * 0.8) + 'px';
 
+        // Căn giữa score display
         scoreDisplay.style.marginLeft = - (scoreDisplay.offsetWidth / 2) + 'px';
         scoreDisplay.style.marginTop = - (scoreDisplay.offsetHeight / 2) + 'px';
 
@@ -383,7 +348,6 @@ function updateScoreDisplay() {
         scoreDisplay.style.opacity = '0';
         scoreDisplay.textContent = '';
     }
-    saveGameState(); // Lưu trạng thái mỗi khi điểm số được cập nhật
 }
 
 function resetScore() {
@@ -392,7 +356,6 @@ function resetScore() {
     showCo3mComText();
     hasScoredThisJump = false;
     justScoredAndLanded = false;
-    localStorage.removeItem(GAME_STATE_KEY); // Xóa trạng thái đã lưu khi game reset hoàn toàn
 }
 
 function hideCo3mComText() {
@@ -413,11 +376,13 @@ function initializeGame() {
 
     lastTimestamp = 0;
     accumulatedTime = 0;
+    resetScore();
     isJumping = false;
-    hasReversedOnCollision = false;
+    hasReversedOnCollision = false; // Khởi tạo lại trạng thái va chạm
 
-    adjustFontSize();
+    adjustFontSize(); // Đảm bảo kích thước được cập nhật trước mọi tính toán vị trí
 
+    // Buộc reflow lần nữa sau khi adjustFontSize để lấy các giá trị offset mới nhất
     var tempRedDotOffsetWidth = redDotStatic.offsetWidth;
     var tempBlueDotOffsetWidth = blueDotMoving.offsetWidth;
 
@@ -427,36 +392,27 @@ function initializeGame() {
     var redDotRect = redDotStatic.getBoundingClientRect();
     var textContainerRect = textContainer.getBoundingClientRect();
 
+    // Tính toán vị trí tâm chấm đỏ tương đối với textContainer (cha chung)
     redDotCenterXPx = redDotRect.left + redDotRadiusPx - textContainerRect.left;
 
     leftBoundaryPx = redDotCenterXPx - movementLimitPx - blueDotRadiusPx;
     rightBoundaryPx = redDotCenterXPx + movementLimitPx - blueDotRadiusPx;
 
-    // --- SỬA ĐỔI QUAN TRỌNG TẠI ĐÂY ---
-    const hasLoadedState = loadGameState(); // Cố gắng tải trạng thái game đã lưu
-
-    if (!hasLoadedState) {
-        // Nếu không có trạng thái nào được lưu, khởi tạo game từ đầu
-        resetScore(); // Đảm bảo điểm về 0 và xóa localStorage
-        blueDotX = redDotCenterXPx + redDotRadiusPx; // Vị trí khởi tạo mặc định
-        blueDotY = blueDotBaseY;
-        blueDotDirection = 1;
-    } else {
-        // Nếu đã tải trạng thái, đảm bảo các biến vị trí được cập nhật và nằm trong giới hạn
-        // Đặc biệt quan trọng khi thay đổi kích thước màn hình
-        blueDotX = Math.max(leftBoundaryPx, Math.min(rightBoundaryPx, blueDotX));
-        blueDotY = Math.min(blueDotBaseY, blueDotY); // Đảm bảo blueDotY không thấp hơn blueDotBaseY
-    }
-    // --- KẾT THÚC SỬA ĐỔI QUAN TRỌNG ---
+    // Đặt vị trí ban đầu của blueDot
+    // Khởi tạo blueDotX ở bên phải của redDotCenterXPx
+    blueDotX = redDotCenterXPx + redDotRadiusPx;
+    blueDotY = blueDotBaseY; // Sử dụng blueDotBaseY đã được tính trong adjustFontSize
 
     renderBlueDot();
     animationFrameId = window.requestAnimationFrame(gameLoop);
 }
 
+// Thêm sự kiện
 addEvent(window, 'load', initializeGame);
 addEvent(fullscreenOverlay, 'mousedown', jump);
 addEvent(fullscreenOverlay, 'touchstart', jump);
 addEvent(window, 'keydown', function(event) {
+    // Ngăn chặn cuộn trang khi nhấn phím cách hoặc các phím mặc định khác
     if (event.code === 'Space' || event.key === ' ' || event.keyCode === 32) {
         event.preventDefault();
         jump();
