@@ -1,10 +1,10 @@
-const CACHE_NAME = 'my-web-cache-v2025062735'; 
+const CACHE_NAME = 'my-web-cache-v2025062737'; 
 
 const urlsToCache = [
     './',
     './index.html',
-    './style.css?v=2025062735',
-    './script.js?v=2025062735',
+    './style.css?v=2025062737',
+    './script.js?v=2025062737',
     './swreg.js'
 ];
 
