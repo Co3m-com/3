@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-web-cache-v202507141655'; // Đổi tên cache để kích hoạt cập nhật khi có code mới
+const CACHE_NAME = 'my-web-cache-v202507141656'; // Đổi tên cache để kích hoạt cập nhật khi có code mới
 
 const urlsToCache = [
     './',
